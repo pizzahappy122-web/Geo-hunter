@@ -33,6 +33,7 @@
         canvas {
             display: block;
             background-color: #4d7a36;
+            image-rendering: pixelated; /* Crisp pixel art scaling */
         }
         #ui {
             position: absolute;
@@ -221,9 +222,7 @@
             leafyTreeSheet: 'Tree1.png', 
             bushImage: 'Bush1.png'       
         };
-        // ==========================================
 
-        // Image Asset Loader Engine
         const images = {};
         for (const [key, path] of Object.entries(GAME_SPRITES)) {
             if (path && path.trim() !== '') {
@@ -232,6 +231,128 @@
             }
         }
 
+        // ==========================================
+        // 🎨 PROCEDURAL 16x16 PLAYER SPRITE GENERATOR
+        // ==========================================
+        const playerSpriteCanvas = document.createElement('canvas');
+        playerSpriteCanvas.width = 64;  // 4 Frames horizontally (Idle, Walk1, Idle, Walk2)
+        playerSpriteCanvas.height = 64; // 4 Directions vertically (Down=0, Up=1, Left=2, Right=3)
+        const pCtx = playerSpriteCanvas.getContext('2d');
+
+        // Color Palette
+        const C = {
+            H: '#e0ac69', // Skin
+            S: '#c68642', // Skin shadow
+            B: '#2980b9', // Shirt blue
+            BD: '#1c5982',// Shirt shadow
+            P: '#34495e', // Pants dark
+            E: '#2c3e50', // Eyes
+            K: '#111111', // Boots
+            O: '#000000'  // Outline
+        };
+
+        // Raw 16x16 Pixel Maps for Directions
+        const rawFrames = {
+            down: [
+                "....OOOOOOOO....",
+                "...OOHHHHHHOO...",
+                "..OOHHHHHHHHOO..",
+                "..OOHHEEHHEEOO..",
+                "..OOHHEEHHEEOO..",
+                "..OOHHHHHHHHOO..",
+                "...OOSSSSSSOO...",
+                "..OOBBBBBBBBOO..",
+                ".OOBBBBBBBBBBOO.",
+                ".OOBBBBBBBBBBOO.",
+                ".OOBBBBBBBBBBOO.",
+                "..OO33333333OO..",
+                "..OO333..333OO..",
+                "..OO333..333OO..",
+                "..OOKKK..KKKOO..",
+                "...OOOO..OOOO..."
+            ],
+            up: [
+                "....OOOOOOOO....",
+                "...OOHHHHHHOO...",
+                "..OOHHHHHHHHOO..",
+                "..OOHHHHHHHHOO..",
+                "..OOHHHHHHHHOO..",
+                "..OOHHHHHHHHOO..",
+                "...OOSSSSSSOO...",
+                "..OOBBBBBBBBOO..",
+                ".OOBBBBBBBBBBOO.",
+                ".OOBBBBBBBBBBOO.",
+                ".OOBBBBBBBBBBOO.",
+                "..OO33333333OO..",
+                "..OO333..333OO..",
+                "..OO333..333OO..",
+                "..OOKKK..KKKOO..",
+                "...OOOO..OOOO..."
+            ],
+            side: [
+                "....OOOOOOOO....",
+                "...OOHHHHHHOO...",
+                "..OOHHHHHHHHOO..",
+                "..OOHHEEHHHHHH..",
+                "..OOHHEEHHHHHH..",
+                "..OOHHHHHHHHOO..",
+                "...OOSSSSSSOO...",
+                "..OOBBBBBBBBOO..",
+                ".OOBBBBBBBBBBOO.",
+                ".OOBBBBBBBBBBOO.",
+                ".OOBBBBBBBBBBOO.",
+                "..OO33333333OO..",
+                "..OO333..333OO..",
+                "..OO333..333OO..",
+                "..OOKKK..KKKOO..",
+                "...OOOO..OOOO..."
+            ]
+        };
+
+        function drawPixelData(map, offsetX, offsetY, flip = false, legFrame = 0) {
+            pCtx.save();
+            if (flip) {
+                pCtx.translate(offsetX + 16, offsetY);
+                pCtx.scale(-1, 1);
+            } else {
+                pCtx.translate(offsetX, offsetY);
+            }
+
+            for (let y = 0; y < 16; y++) {
+                let row = map[y];
+                
+                // Animate Legs/Grit dynamically on frames 1 & 3
+                if (y >= 11) {
+                    if (legFrame === 1) { // Left leg step
+                        if (y === 14 || y === 15) row = row.substring(0, 2) + "K" + row.substring(3, 11) + "." + row.substring(12);
+                    } else if (legFrame === 3) { // Right leg step
+                        if (y === 14 || y === 15) row = row.substring(0, 5) + "." + row.substring(6, 13) + "K" + row.substring(14);
+                    }
+                }
+
+                for (let x = 0; x < 16; x++) {
+                    const ch = row[x];
+                    if (ch === '.') continue;
+                    pCtx.fillStyle = C[ch] || C.O;
+                    pCtx.fillRect(x, y, 1, 1);
+                }
+            }
+            pCtx.restore();
+        }
+
+        // Render Spritesheet grid (Down, Up, Left, Right x 4 Animation Frames)
+        const dirs = ['down', 'up', 'side', 'side'];
+        for (let dirIdx = 0; dirIdx < 4; dirIdx++) {
+            const isLeft = (dirIdx === 2);
+            const map = rawFrames[dirs[dirIdx]];
+            for (let frame = 0; frame < 4; frame++) {
+                drawPixelData(map, frame * 16, dirIdx * 16, isLeft, frame);
+            }
+        }
+
+        // ==========================================
+        // 🎮 GAME SETUP
+        // ==========================================
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const scoreEl = document.getElementById('score');
@@ -251,9 +372,13 @@
             gridY: 0,
             x: canvas.width / 2,
             y: canvas.height / 2,
-            radius: 14,
+            radius: 12,
             speed: 220,
-            color: '#3498db'
+            // Animation States:
+            direction: 0, // 0: Down, 1: Up, 2: Left, 3: Right
+            animTimer: 0,
+            animFrame: 0,
+            isMoving: false
         };
 
         const inventory = [
@@ -351,7 +476,7 @@
         class Rock {
             constructor(x, y) {
                 this.x = x; this.y = y;
-                this.radius = 24;
+                this.radius = 22;
             }
 
             draw() {
@@ -371,11 +496,6 @@
             constructor(x, y) {
                 this.x = x; this.y = y;
                 this.trunkRadius = 14;
-                this.isPine = Math.random() < 0.5;
-            }
-
-            drawTrunk() {
-                // Ground collision reference
             }
 
             drawCanopy() {
@@ -609,8 +729,6 @@
             if (keys['keya'] || keys['arrowleft']) dx -= 1;
             if (keys['keyd'] || keys['arrowright']) dx += 1;
 
-            if (dx !== 0 && dy !== 0) { dx *= 0.7071; dy *= 0.7071; }
-
             if (joystick.active && dx === 0 && dy === 0) {
                 const diffX = joystick.currX - joystick.startX;
                 const diffY = joystick.currY - joystick.startY;
@@ -621,9 +739,57 @@
                 }
             }
 
-            player.x += dx * player.speed * deltaTime;
-            player.y += dy * player.speed * deltaTime;
+            player.isMoving = (dx !== 0 || dy !== 0);
 
+            if (player.isMoving) {
+                // Update direction based on primary vector axis
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    player.direction = dx > 0 ? 3 : 2; // Right : Left
+                } else {
+                    player.direction = dy > 0 ? 0 : 1; // Down : Up
+                }
+
+                // Animation Frame Cycling
+                player.animTimer += deltaTime * 10; // Speed of step cycle
+                player.animFrame = Math.floor(player.animTimer) % 4;
+            } else {
+                player.animFrame = 0; // Idle frame
+                player.animTimer = 0;
+            }
+
+            if (dx !== 0 && dy !== 0) { dx *= 0.7071; dy *= 0.7071; }
+
+            let nextX = player.x + dx * player.speed * deltaTime;
+            let nextY = player.y + dy * player.speed * deltaTime;
+
+            const currentChunk = getOrCreateChunk(player.gridX, player.gridY);
+            
+            // Rock Collisions
+            for (const rock of currentChunk.rocks) {
+                const dist = Math.hypot(nextX - rock.x, nextY - rock.y);
+                const minDist = player.radius + rock.radius;
+                if (dist < minDist) {
+                    const angle = Math.atan2(nextY - rock.y, nextX - rock.x);
+                    nextX = rock.x + Math.cos(angle) * minDist;
+                    nextY = rock.y + Math.sin(angle) * minDist;
+                }
+            }
+
+            // Tree Trunk Collisions
+            for (const tree of currentChunk.trees) {
+                const dist = Math.hypot(nextX - tree.x, nextY - tree.y);
+                const minDist = player.radius + tree.trunkRadius;
+                if (dist < minDist) {
+                    const angle = Math.atan2(nextY - tree.y, nextX - tree.x);
+                    nextX = tree.x + Math.cos(angle) * minDist;
+                    nextY = tree.y + Math.sin(angle) * minDist;
+                }
+            }
+
+            player.x = nextX;
+            player.y = nextY;
+
+            // Chunk Transitions
             if (player.x > canvas.width) { player.gridX++; player.x = player.radius + 2; }
             else if (player.x < 0) { player.gridX--; player.x = canvas.width - player.radius - 2; }
             
@@ -631,6 +797,18 @@
             else if (player.y > canvas.height) { player.gridY--; player.y = player.radius + 2; }
 
             sectorEl.textContent = `X: ${player.gridX}, Y: ${player.gridY}`;
+        }
+
+        function drawPlayerSprite() {
+            const frameX = player.animFrame * 16;
+            const frameY = player.direction * 16;
+            
+            // Render 16x16 sprite scaled 2.5x (40x40 px display size) centered on collision center
+            ctx.drawImage(
+                playerSpriteCanvas,
+                frameX, frameY, 16, 16,
+                player.x - 20, player.y - 22, 40, 40
+            );
         }
 
         let lastTime = performance.now();
@@ -645,6 +823,7 @@
 
             const chunk = getOrCreateChunk(player.gridX, player.gridY);
 
+            // Ground layer rendering
             chunk.bushes.forEach(b => b.draw());
             chunk.rocks.forEach(r => r.draw());
 
@@ -682,23 +861,10 @@
                 m.draw();
             });
 
-            ctx.fillStyle = player.color;
-            ctx.beginPath();
-            ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
-            ctx.fill();
+            // Player rendering
+            drawPlayerSprite();
 
-            if (inventory[selectedSlotIndex] && inventory[selectedSlotIndex].type === 'weapon') {
-                ctx.fillStyle = '#d5dbdb';
-                ctx.fillRect(player.x + 10, player.y - 15, 6, 20);
-                ctx.fillStyle = '#7f8c8d';
-                ctx.fillRect(player.x + 6, player.y + 2, 14, 4);
-            }
-
-            ctx.fillStyle = '#ffffff';
-            ctx.beginPath();
-            ctx.arc(player.x, player.y, player.radius * 0.4, 0, Math.PI * 2);
-            ctx.fill();
-
+            // Overhead canopy rendering (walkable behind/under tree tops)
             chunk.trees.forEach(t => t.drawCanopy());
 
             requestAnimationFrame(gameLoop);
