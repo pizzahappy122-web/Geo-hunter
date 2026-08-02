@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Cache Hunter - Wrapping World</title>
+    <title>Cache Hunter - Complete Update</title>
     <style>
         * {
             box-sizing: border-box;
@@ -53,65 +53,133 @@
         .sector-tag {
             color: #f1c40f;
         }
-        #instructions {
+        
+        /* Hotbar Inventory */
+        #hotbar {
             position: absolute;
             bottom: 15px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.7);
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-size: 14px;
-            text-align: center;
-            backdrop-filter: blur(4px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            white-space: nowrap;
-            z-index: 10;
-        }
-        .key {
-            background: #444;
-            padding: 2px 6px;
-            border-radius: 4px;
-            border: 1px solid #666;
-            font-family: monospace;
-        }
-
-        /* Mobile Controls */
-        #mobile-controls {
-            display: none;
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 20;
-        }
-        #mobile-controls.active {
-            display: block;
-        }
-        #search-btn {
-            position: absolute;
-            bottom: 25px;
-            right: 25px;
-            width: 80px;
-            height: 80px;
-            background: rgba(243, 156, 18, 0.85);
-            border: 3px solid #ffffff;
-            border-radius: 50%;
-            color: white;
-            font-weight: bold;
-            font-size: 14px;
             display: flex;
+            gap: 8px;
+            background: rgba(0, 0, 0, 0.75);
+            padding: 6px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            z-index: 15;
+            backdrop-filter: blur(4px);
+        }
+        .slot {
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
+            font-size: 10px;
+            text-align: center;
+            position: relative;
+            cursor: pointer;
             pointer-events: auto;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            text-shadow: 1px 1px 2px black;
         }
-        #search-btn:active {
-            background: rgba(211, 84, 0, 0.95);
-            transform: scale(0.95);
+        .slot.selected {
+            border-color: #f1c40f;
+            background: rgba(241, 196, 15, 0.2);
+        }
+        .slot-num {
+            position: absolute;
+            top: 2px;
+            left: 4px;
+            font-size: 10px;
+            color: #aaa;
+        }
+        .item-icon {
+            font-size: 18px;
+            margin-top: 4px;
+        }
+
+        /* Mobile Bush Action Button */
+        #mobile-bush-btn {
+            display: none;
+            position: absolute;
+            transform: translate(-50%, -100%);
+            background: #f39c12;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 14px;
+            border: 2px solid white;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            pointer-events: auto;
+            z-index: 25;
+            cursor: pointer;
+        }
+
+        /* Cache Modal Popup */
+        #cache-modal {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(20, 20, 20, 0.95);
+            border: 2px solid #f1c40f;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            z-index: 30;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+            min-width: 260px;
+            pointer-events: auto;
+        }
+        #cache-modal h3 {
+            margin: 0 0 15px 0;
+            color: #f1c40f;
+        }
+        .modal-btn {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            background: #34495e;
+            color: white;
+            border: 1px solid #5d6d7e;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .modal-btn:hover, .modal-btn:active {
+            background: #2c3e50;
+        }
+        .modal-btn.warning {
+            background: #e74c3c;
+        }
+
+        /* Steal Warning Banner */
+        #steal-warning {
+            display: none;
+            position: absolute;
+            top: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #e74c3c;
+            color: white;
+            padding: 10px 20px;
+            font-weight: bold;
+            font-size: 18px;
+            border-radius: 8px;
+            border: 2px solid white;
+            box-shadow: 0 0 15px rgba(231, 76, 60, 0.8);
+            z-index: 40;
+            animation: pulse 0.8s infinite alternate;
+        }
+        @keyframes pulse {
+            from { transform: translateX(-50%) scale(1); }
+            to { transform: translateX(-50%) scale(1.05); }
         }
     </style>
 </head>
@@ -119,16 +187,33 @@
 
     <div id="game-container">
         <canvas id="gameCanvas" width="800" height="600"></canvas>
+        
         <div id="ui">
             <div>Screen: <span id="sector" class="sector-tag">X: 0, Y: 0</span></div>
             <div>Caches Found: <span id="score">0</span> / <span id="total">0</span></div>
         </div>
-        <div id="instructions">
-            Move with <span class="key">WASD</span> / <span class="key">Arrows</span> | Hold <span class="key">SPACE</span> / <span class="key">E</span> / <b>Click</b> near bush to search
+
+        <div id="steal-warning">⚠️ DON'T STEAL CACHES! ⚠️</div>
+
+        <button id="mobile-bush-btn">SEARCH [E]</button>
+
+        <!-- 5-Slot Inventory Hotbar -->
+        <div id="hotbar">
+            <div class="slot selected" onclick="selectSlot(0)">
+                <span class="slot-num">1</span>
+                <span class="item-icon">🗡️</span>
+            </div>
+            <div class="slot" onclick="selectSlot(1)"><span class="slot-num">2</span><span class="item-icon"></span></div>
+            <div class="slot" onclick="selectSlot(2)"><span class="slot-num">3</span><span class="item-icon"></span></div>
+            <div class="slot" onclick="selectSlot(3)"><span class="slot-num">4</span><span class="item-icon"></span></div>
+            <div class="slot" onclick="selectSlot(4)"><span class="slot-num">5</span><span class="item-icon"></span></div>
         </div>
 
-        <div id="mobile-controls">
-            <div id="search-btn">SEARCH</div>
+        <!-- Cache Interaction Modal -->
+        <div id="cache-modal">
+            <h3 id="modal-title">Cache Found!</h3>
+            <div id="modal-actions"></div>
+            <button class="modal-btn warning" onclick="closeModal()">Close</button>
         </div>
     </div>
 
@@ -138,34 +223,16 @@
         const scoreEl = document.getElementById('score');
         const totalEl = document.getElementById('total');
         const sectorEl = document.getElementById('sector');
-        const instructionsEl = document.getElementById('instructions');
-        const mobileControlsEl = document.getElementById('mobile-controls');
-        const searchBtn = document.getElementById('search-btn');
+        const mobileBushBtn = document.getElementById('mobile-bush-btn');
+        const cacheModal = document.getElementById('cache-modal');
+        const modalActions = document.getElementById('modal-actions');
+        const modalTitle = document.getElementById('modal-title');
+        const stealWarning = document.getElementById('steal-warning');
 
-        // Game Settings
-        const SEARCH_TIME_NEEDED = 1.2;
+        const isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
         const INTERACTION_DISTANCE = 55;
 
-        // Player & Mobile State
-        const isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
-        let isMobileSearching = false;
-
-        let joystick = {
-            active: false,
-            touchId: null,
-            startX: 0, startY: 0,
-            currX: 0, currY: 0,
-            maxRadius: 50
-        };
-
-        if (isMobile) {
-            mobileControlsEl.classList.add('active');
-            instructionsEl.innerHTML = "Drag <b>Left Side</b> to Move | Hold <b>SEARCH</b> near a bush";
-        }
-
-        const keys = {};
-        let isMouseHolding = false;
-
+        // Player State
         const player = {
             gridX: 0,
             gridY: 0,
@@ -176,21 +243,72 @@
             color: '#3498db'
         };
 
+        // Inventory System
+        const inventory = [
+            { name: "Wooden Sword", type: "weapon", icon: "🗡️" },
+            null, null, null, null
+        ];
+        let selectedSlotIndex = 0;
+
+        function updateHotbarUI() {
+            const slots = document.querySelectorAll('.slot');
+            slots.forEach((slot, idx) => {
+                if (idx === selectedSlotIndex) slot.classList.add('selected');
+                else slot.classList.remove('selected');
+
+                const item = inventory[idx];
+                const iconSpan = slot.querySelector('.item-icon');
+                iconSpan.textContent = item ? item.icon : "";
+            });
+        }
+
+        function selectSlot(index) {
+            selectedSlotIndex = index;
+            updateHotbarUI();
+        }
+
+        // Steal Warning Mechanics
+        let activeHeldCacheTime = 0;
+        let isHoldingCache = false;
+
+        function checkHeldCacheTimer(deltaTime) {
+            const holdsCache = inventory.some(item => item && item.type === 'cache');
+            if (holdsCache) {
+                activeHeldCacheTime += deltaTime;
+                if (activeHeldCacheTime > 5) {
+                    stealWarning.style.display = 'block';
+                }
+            } else {
+                activeHeldCacheTime = 0;
+                stealWarning.style.display = 'none';
+            }
+        }
+
+        // Joystick Controls
+        let joystick = {
+            active: false, touchId: null,
+            startX: 0, startY: 0,
+            currX: 0, currY: 0,
+            maxRadius: 50
+        };
+
+        const keys = {};
+        const worldMap = {};
         let totalCachesDiscoveredInWorld = 0;
         let cachesFound = 0;
+        let activeNearbyBush = null;
 
-        // World Storage (Saves loaded screens)
-        const worldMap = {};
-
-        // Object Classes
+        // Entities
         class Bush {
             constructor(x, y) {
                 this.x = x;
                 this.y = y;
                 this.radius = 26;
-                this.hasCache = Math.random() < 0.45;
-                this.searched = false;
-                this.searchProgress = 0;
+                this.hasCache = Math.random() < 0.5;
+                this.cacheTaken = false;
+                this.hasTrackable = Math.random() < 0.4;
+                this.trackableTaken = false;
+                this.signed = false;
                 this.leaves = [
                     { dx: 0, dy: 0, r: this.radius },
                     { dx: -9, dy: -7, r: this.radius * 0.7 },
@@ -201,213 +319,165 @@
             }
 
             draw() {
-                ctx.fillStyle = this.searched ? '#425f30' : '#2b752f';
+                ctx.fillStyle = this.signed ? '#27ae60' : '#2b752f';
                 for (const leaf of this.leaves) {
                     ctx.beginPath();
                     ctx.arc(this.x + leaf.dx, this.y + leaf.dy, leaf.r, 0, Math.PI * 2);
                     ctx.fill();
                 }
 
-                const dist = Math.hypot(player.x - this.x, player.y - this.y);
-                if (dist < INTERACTION_DISTANCE && !this.searched) {
-                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
-                    ctx.lineWidth = 2;
-                    ctx.beginPath();
-                    ctx.arc(this.x, this.y, this.radius + 4, 0, Math.PI * 2);
-                    ctx.stroke();
-                }
-
-                if (this.searched) {
-                    ctx.fillStyle = this.hasCache ? '#f1c40f' : 'rgba(0,0,0,0.3)';
+                if (this.signed) {
+                    ctx.fillStyle = '#f1c40f';
                     ctx.beginPath();
                     ctx.arc(this.x, this.y, 6, 0, Math.PI * 2);
                     ctx.fill();
-                }
-
-                if (this.searchProgress > 0 && !this.searched) {
-                    const barW = 40, barH = 6;
-                    const barX = this.x - barW / 2;
-                    const barY = this.y - this.radius - 12;
-
-                    ctx.fillStyle = 'rgba(0,0,0,0.6)';
-                    ctx.fillRect(barX, barY, barW, barH);
-                    ctx.fillStyle = '#f39c12';
-                    ctx.fillRect(barX, barY, barW * this.searchProgress, barH);
                 }
             }
         }
 
         class Rock {
             constructor(x, y) {
-                this.x = x;
-                this.y = y;
+                this.x = x; this.y = y;
                 this.radius = 20 + Math.random() * 12;
             }
-
             draw() {
                 ctx.fillStyle = '#7f8c8d';
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-                ctx.fill();
-
-                ctx.fillStyle = '#95a5a6';
-                ctx.beginPath();
-                ctx.arc(this.x - this.radius * 0.25, this.y - this.radius * 0.25, this.radius * 0.5, 0, Math.PI * 2);
                 ctx.fill();
             }
         }
 
         class Tree {
             constructor(x, y) {
-                this.x = x;
-                this.y = y;
+                this.x = x; this.y = y;
                 this.trunkRadius = 14;
                 this.canopyRadius = 45 + Math.random() * 10;
             }
-
             drawTrunk() {
-                ctx.fillStyle = 'rgba(0,0,0,0.25)';
-                ctx.beginPath();
-                ctx.arc(this.x + 4, this.y + 4, this.trunkRadius, 0, Math.PI * 2);
-                ctx.fill();
-
                 ctx.fillStyle = '#5d4037';
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.trunkRadius, 0, Math.PI * 2);
                 ctx.fill();
             }
-
             drawCanopy() {
-                ctx.fillStyle = 'rgba(30, 86, 49, 0.92)';
+                ctx.fillStyle = 'rgba(46, 125, 50, 0.85)';
                 ctx.beginPath();
                 ctx.arc(this.x, this.y - 12, this.canopyRadius, 0, Math.PI * 2);
                 ctx.fill();
+            }
+        }
 
-                ctx.fillStyle = 'rgba(46, 125, 50, 0.85)';
+        class Monster {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.radius = 14;
+                this.speed = 120;
+                this.detectionRange = 180;
+                this.isChasing = false;
+            }
+
+            update(deltaTime) {
+                const dist = Math.hypot(player.x - this.x, player.y - this.y);
+                if (dist < this.detectionRange) {
+                    this.isChasing = true;
+                    const angle = Math.atan2(player.y - this.y, player.x - this.x);
+                    this.x += Math.cos(angle) * this.speed * deltaTime;
+                    this.y += Math.sin(angle) * this.speed * deltaTime;
+                } else {
+                    this.isChasing = false;
+                }
+            }
+
+            draw() {
+                // Red Exclamation Alert
+                if (this.isChasing) {
+                    ctx.fillStyle = '#e74c3c';
+                    ctx.font = 'bold 22px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('!', this.x, this.y - 24);
+                }
+
+                // Monster Body (Matches player with red outline)
+                ctx.strokeStyle = '#e74c3c';
+                ctx.lineWidth = 3;
+                ctx.fillStyle = '#3498db';
+
                 ctx.beginPath();
-                ctx.arc(this.x - 8, this.y - 18, this.canopyRadius * 0.65, 0, Math.PI * 2);
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius * 0.4, 0, Math.PI * 2);
                 ctx.fill();
             }
         }
 
-        // Screen Map Generator & Memory Manager
-        function getChunkKey(gx, gy) {
-            return `${gx},${gy}`;
-        }
-
+        // Chunk Manager
         function getOrCreateChunk(gx, gy) {
-            const key = getChunkKey(gx, gy);
-            if (worldMap[key]) {
-                return worldMap[key];
+            const key = `${gx},${gy}`;
+            if (worldMap[key]) return worldMap[key];
+
+            const bushes = [], rocks = [], trees = [], monsters = [];
+            const isSpawn = (gx === 0 && gy === 0);
+
+            for (let i = 0; i < 4; i++) {
+                bushes.push(new Bush(80 + Math.random() * 640, 80 + Math.random() * 440));
+                if (bushes[i].hasCache) totalCachesDiscoveredInWorld++;
             }
 
-            const bushes = [];
-            const rocks = [];
-            const trees = [];
-
-            const numBushes = Math.floor(Math.random() * 3) + 2;
-            const numRocks = Math.floor(Math.random() * 4) + 2;
-            const numTrees = Math.floor(Math.random() * 5) + 3;
-
-            const isSpawnChunk = (gx === 0 && gy === 0);
-
-            function isValidPos(x, y, rad) {
-                if (isSpawnChunk && Math.hypot(canvas.width/2 - x, canvas.height/2 - y) < 90) return false;
-                if (x < 60 || x > canvas.width - 60 || y < 60 || y > canvas.height - 60) return false;
-
-                for (let r of rocks) if (Math.hypot(r.x - x, r.y - y) < r.radius + rad + 10) return false;
-                for (let t of trees) if (Math.hypot(t.x - x, t.y - y) < t.trunkRadius + rad + 15) return false;
-                for (let b of bushes) if (Math.hypot(b.x - x, b.y - y) < b.radius + rad + 10) return false;
-                return true;
+            for (let i = 0; i < 3; i++) {
+                rocks.push(new Rock(80 + Math.random() * 640, 80 + Math.random() * 440));
+                trees.push(new Tree(80 + Math.random() * 640, 80 + Math.random() * 440));
             }
 
-            for (let i = 0; i < numRocks; i++) {
-                let x, y, r = 25, attempts = 0;
-                do {
-                    x = 60 + Math.random() * (canvas.width - 120);
-                    y = 60 + Math.random() * (canvas.height - 120);
-                    attempts++;
-                } while (!isValidPos(x, y, r) && attempts < 50);
-                if (attempts < 50) rocks.push(new Rock(x, y));
-            }
-
-            for (let i = 0; i < numTrees; i++) {
-                let x, y, r = 20, attempts = 0;
-                do {
-                    x = 60 + Math.random() * (canvas.width - 120);
-                    y = 60 + Math.random() * (canvas.height - 120);
-                    attempts++;
-                } while (!isValidPos(x, y, r) && attempts < 50);
-                if (attempts < 50) trees.push(new Tree(x, y));
-            }
-
-            for (let i = 0; i < numBushes; i++) {
-                let x, y, r = 26, attempts = 0;
-                do {
-                    x = 60 + Math.random() * (canvas.width - 120);
-                    y = 60 + Math.random() * (canvas.height - 120);
-                    attempts++;
-                } while (!isValidPos(x, y, r) && attempts < 50);
-                if (attempts < 50) {
-                    const bush = new Bush(x, y);
-                    bushes.push(bush);
-                    if (bush.hasCache) totalCachesDiscoveredInWorld++;
+            // Monsters spawn outside starting area
+            if (!isSpawn) {
+                const numMonsters = Math.floor(Math.random() * 2) + 1;
+                for (let i = 0; i < numMonsters; i++) {
+                    monsters.push(new Monster(100 + Math.random() * 600, 100 + Math.random() * 400));
                 }
             }
 
-            const newChunk = { bushes, rocks, trees };
-            worldMap[key] = newChunk;
+            const chunk = { bushes, rocks, trees, monsters };
+            worldMap[key] = chunk;
             totalEl.textContent = totalCachesDiscoveredInWorld;
-            return newChunk;
+            return chunk;
         }
 
-        getOrCreateChunk(player.gridX, player.gridY);
+        getOrCreateChunk(0, 0);
 
-        // Input Listeners
+        // Input & Key Listener Setup
         window.addEventListener('keydown', e => {
-            const key = e.key.toLowerCase();
-            const code = e.code;
+            keys[e.code] = true;
+            keys[e.key.toLowerCase()] = true;
 
-            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'KeyW', 'KeyA', 'KeyS', 'KeyD'].includes(code) ||
-                ['arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'w', 'a', 's', 'd', ' '].includes(key)) {
-                e.preventDefault();
+            // PC Hotbar Selection Keys (1-5)
+            if (['1', '2', '3', '4', '5'].includes(e.key)) {
+                selectSlot(parseInt(e.key) - 1);
             }
 
-            keys[code] = true;
-            keys[key] = true;
+            // Interact Key (E)
+            if ((e.code === 'KeyE' || e.key.toLowerCase() === 'e') && activeNearbyBush) {
+                openCacheModal(activeNearbyBush);
+            }
         });
 
         window.addEventListener('keyup', e => {
-            const key = e.key.toLowerCase();
-            const code = e.code;
-
-            keys[code] = false;
-            keys[key] = false;
+            keys[e.code] = false;
+            keys[e.key.toLowerCase()] = false;
         });
 
-        canvas.addEventListener('mousedown', () => isMouseHolding = true);
-        window.addEventListener('mouseup', () => isMouseHolding = false);
-
+        // Touch Listeners for Mobile Joystick
         if (isMobile) {
-            searchBtn.addEventListener('touchstart', (e) => { e.preventDefault(); isMobileSearching = true; });
-            window.addEventListener('touchend', (e) => {
-                let searchStillTouched = false;
-                for (let i = 0; i < e.touches.length; i++) if (e.touches[i].target === searchBtn) searchStillTouched = true;
-                if (!searchStillTouched) isMobileSearching = false;
-
-                if (joystick.active) {
-                    let joystickStillTouched = false;
-                    for (let i = 0; i < e.touches.length; i++) if (e.touches[i].identifier === joystick.touchId) joystickStillTouched = true;
-                    if (!joystickStillTouched) joystick.active = false;
-                }
-            });
-
-            window.addEventListener('touchstart', (e) => {
+            window.addEventListener('touchstart', e => {
                 for (let i = 0; i < e.changedTouches.length; i++) {
                     const touch = e.changedTouches[i];
                     const rect = canvas.getBoundingClientRect();
-                    const touchX = touch.clientX - rect.left;
-                    if (touch.target !== searchBtn && touchX < rect.width / 2 && !joystick.active) {
+                    if (touch.clientX < window.innerWidth / 2 && !joystick.active) {
                         joystick.active = true;
                         joystick.touchId = touch.identifier;
                         joystick.startX = touch.clientX; joystick.startY = touch.clientY;
@@ -416,26 +486,120 @@
                 }
             });
 
-            window.addEventListener('touchmove', (e) => {
+            window.addEventListener('touchmove', e => {
                 if (!joystick.active) return;
                 for (let i = 0; i < e.changedTouches.length; i++) {
                     const touch = e.changedTouches[i];
                     if (touch.identifier === joystick.touchId) {
-                        joystick.currX = touch.clientX;
-                        joystick.currY = touch.clientY;
+                        joystick.currX = touch.clientX; joystick.currY = touch.clientY;
+                    }
+                }
+            });
+
+            window.addEventListener('touchend', e => {
+                if (joystick.active) {
+                    for (let i = 0; i < e.changedTouches.length; i++) {
+                        if (e.changedTouches[i].identifier === joystick.touchId) joystick.active = false;
                     }
                 }
             });
         }
 
-        // Movement & Teleport Logic
+        mobileBushBtn.addEventListener('click', () => {
+            if (activeNearbyBush) openCacheModal(activeNearbyBush);
+        });
+
+        // Modal Logic for Cache Actions
+        function openCacheModal(bush) {
+            modalActions.innerHTML = "";
+            const pcHint = (key) => isMobile ? "" : ` [Key ${key}]`;
+
+            if (bush.hasCache && !bush.cacheTaken) {
+                modalTitle.textContent = "Cache Discovered!";
+
+                // Sign Cache Option
+                const signBtn = document.createElement('button');
+                signBtn.className = "modal-btn";
+                signBtn.textContent = `Sign Cache${pcHint('1')}`;
+                signBtn.onclick = () => {
+                    if (!bush.signed) {
+                        bush.signed = true;
+                        cachesFound++;
+                        scoreEl.textContent = cachesFound;
+                    }
+                    closeModal();
+                };
+                modalActions.appendChild(signBtn);
+
+                // Take Cache Option
+                const takeBtn = document.createElement('button');
+                takeBtn.className = "modal-btn";
+                takeBtn.textContent = `Take Cache${pcHint('2')}`;
+                takeBtn.onclick = () => {
+                    const emptyIndex = inventory.findIndex(slot => slot === null);
+                    if (emptyIndex !== -1) {
+                        inventory[emptyIndex] = { name: "Cache", type: "cache", icon: "📦" };
+                        bush.cacheTaken = true;
+                        updateHotbarUI();
+                    } else {
+                        alert("Inventory Full!");
+                    }
+                    closeModal();
+                };
+                modalActions.appendChild(takeBtn);
+
+                // Take Trackable Option
+                if (bush.hasTrackable && !bush.trackableTaken) {
+                    const trackBtn = document.createElement('button');
+                    trackBtn.className = "modal-btn";
+                    trackBtn.textContent = `Take Trackable${pcHint('3')}`;
+                    trackBtn.onclick = () => {
+                        const emptyIndex = inventory.findIndex(slot => slot === null);
+                        if (emptyIndex !== -1) {
+                            inventory[emptyIndex] = { name: "Trackable", type: "trackable", icon: "🏷️" };
+                            bush.trackableTaken = true;
+                            updateHotbarUI();
+                        } else {
+                            alert("Inventory Full!");
+                        }
+                        closeModal();
+                    };
+                    modalActions.appendChild(trackBtn);
+                }
+            } else {
+                modalTitle.textContent = "Empty Bush";
+            }
+
+            // Put Back Cache Option
+            const cacheSlotIndex = inventory.findIndex(item => item && item.type === 'cache');
+            if (cacheSlotIndex !== -1) {
+                const putBackBtn = document.createElement('button');
+                putBackBtn.className = "modal-btn";
+                putBackBtn.textContent = `Put Back Cache${pcHint('4')}`;
+                putBackBtn.onclick = () => {
+                    inventory[cacheSlotIndex] = null;
+                    bush.hasCache = true;
+                    bush.cacheTaken = false;
+                    updateHotbarUI();
+                    closeModal();
+                };
+                modalActions.appendChild(putBackBtn);
+            }
+
+            cacheModal.style.display = 'block';
+        }
+
+        function closeModal() {
+            cacheModal.style.display = 'none';
+        }
+
+        // Movement & Logic Updates
         function updatePlayer(deltaTime) {
             let dx = 0, dy = 0;
-
-            if (keys['KeyW'] || keys['w'] || keys['ArrowUp'] || keys['arrowup']) dy -= 1;
-            if (keys['KeyS'] || keys['s'] || keys['ArrowDown'] || keys['arrowdown']) dy += 1;
-            if (keys['KeyA'] || keys['a'] || keys['ArrowLeft'] || keys['arrowleft']) dx -= 1;
-            if (keys['KeyD'] || keys['d'] || keys['ArrowRight'] || keys['arrowright']) dx += 1;
+            if (keys['keyw'] || keys['arrowup']) dy -= 1;
+            if (keys['keys'] || keys['arrowdown']) dy += 1;
+            if (keys['keya'] || keys['arrowleft']) dx -= 1;
+            if (keys['keyd'] || keys['arrowright']) dx += 1;
 
             if (dx !== 0 && dy !== 0) { dx *= 0.7071; dy *= 0.7071; }
 
@@ -449,118 +613,20 @@
                 }
             }
 
-            let nextX = player.x + dx * player.speed * deltaTime;
-            let nextY = player.y + dy * player.speed * deltaTime;
+            player.x += dx * player.speed * deltaTime;
+            player.y += dy * player.speed * deltaTime;
 
-            const currentChunk = getOrCreateChunk(player.gridX, player.gridY);
-
-            // Rock Collisions
-            for (const rock of currentChunk.rocks) {
-                const dist = Math.hypot(nextX - rock.x, nextY - rock.y);
-                const minDist = player.radius + rock.radius;
-                if (dist < minDist) {
-                    const angle = Math.atan2(nextY - rock.y, nextX - rock.x);
-                    nextX = rock.x + Math.cos(angle) * minDist;
-                    nextY = rock.y + Math.sin(angle) * minDist;
-                }
-            }
-
-            // Tree Trunk Collisions
-            for (const tree of currentChunk.trees) {
-                const dist = Math.hypot(nextX - tree.x, nextY - tree.y);
-                const minDist = player.radius + tree.trunkRadius;
-                if (dist < minDist) {
-                    const angle = Math.atan2(nextY - tree.y, nextX - tree.x);
-                    nextX = tree.x + Math.cos(angle) * minDist;
-                    nextY = tree.y + Math.sin(angle) * minDist;
-                }
-            }
-
-            player.x = nextX;
-            player.y = nextY;
-
-            // Wrapping World Logic (Teleports to Opposite Edge)
-            if (player.x > canvas.width) {
-                player.gridX += 1;
-                player.x = player.radius + 2;
-                getOrCreateChunk(player.gridX, player.gridY);
-            } else if (player.x < 0) {
-                player.gridX -= 1;
-                player.x = canvas.width - player.radius - 2;
-                getOrCreateChunk(player.gridX, player.gridY);
-            }
-
-            if (player.y < 0) {
-                // Going TOP Edge -> Screen Y increases (+1), Teleport to BOTTOM Edge
-                player.gridY += 1;
-                player.y = canvas.height - player.radius - 2;
-                getOrCreateChunk(player.gridX, player.gridY);
-            } else if (player.y > canvas.height) {
-                // Going BOTTOM Edge -> Screen Y decreases (-1), Teleport to TOP Edge
-                player.gridY -= 1;
-                player.y = player.radius + 2;
-                getOrCreateChunk(player.gridX, player.gridY);
-            }
+            // Seamless Wrapping Screen Transition
+            if (player.x > canvas.width) { player.gridX++; player.x = player.radius + 2; }
+            else if (player.x < 0) { player.gridX--; player.x = canvas.width - player.radius - 2; }
+            
+            if (player.y < 0) { player.gridY++; player.y = canvas.height - player.radius - 2; }
+            else if (player.y > canvas.height) { player.gridY--; player.y = player.radius + 2; }
 
             sectorEl.textContent = `X: ${player.gridX}, Y: ${player.gridY}`;
         }
 
-        // Search Mechanics
-        function updateInteraction(deltaTime) {
-            const isSearching = keys['Space'] || keys['KeyE'] || keys['e'] || keys[' '] || isMouseHolding || isMobileSearching;
-            const currentChunk = getOrCreateChunk(player.gridX, player.gridY);
-
-            currentChunk.bushes.forEach(bush => {
-                const dist = Math.hypot(player.x - bush.x, player.y - bush.y);
-
-                if (dist < INTERACTION_DISTANCE && isSearching && !bush.searched) {
-                    bush.searchProgress += deltaTime / SEARCH_TIME_NEEDED;
-
-                    if (bush.searchProgress >= 1) {
-                        bush.searched = true;
-                        bush.searchProgress = 0;
-                        if (bush.hasCache) {
-                            cachesFound++;
-                            scoreEl.textContent = cachesFound;
-                        }
-                    }
-                } else {
-                    bush.searchProgress = Math.max(0, bush.searchProgress - deltaTime * 2);
-                }
-            });
-        }
-
-        function drawJoystick() {
-            if (!joystick.active) return;
-
-            const rect = canvas.getBoundingClientRect();
-            const scaleX = canvas.width / rect.width;
-            const scaleY = canvas.height / rect.height;
-
-            const baseCanvasX = (joystick.startX - rect.left) * scaleX;
-            const baseCanvasY = (joystick.startY - rect.top) * scaleY;
-
-            const diffX = joystick.currX - joystick.startX;
-            const diffY = joystick.currY - joystick.startY;
-            const dist = Math.min(Math.hypot(diffX, diffY), joystick.maxRadius);
-            const angle = Math.atan2(diffY, diffX);
-
-            const stickCanvasX = baseCanvasX + (Math.cos(angle) * dist) * scaleX;
-            const stickCanvasY = baseCanvasY + (Math.sin(angle) * dist) * scaleY;
-
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
-            ctx.lineWidth = 4;
-            ctx.beginPath();
-            ctx.arc(baseCanvasX, baseCanvasY, joystick.maxRadius * scaleX, 0, Math.PI * 2);
-            ctx.stroke();
-
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-            ctx.beginPath();
-            ctx.arc(stickCanvasX, stickCanvasY, 20 * scaleX, 0, Math.PI * 2);
-            ctx.fill();
-        }
-
-        // Render Loop
+        // Main Loop
         let lastTime = performance.now();
         function gameLoop(currentTime) {
             const deltaTime = (currentTime - lastTime) / 1000;
@@ -569,38 +635,78 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             updatePlayer(deltaTime);
-            updateInteraction(deltaTime);
+            checkHeldCacheTimer(deltaTime);
 
-            const currentChunk = getOrCreateChunk(player.gridX, player.gridY);
+            const chunk = getOrCreateChunk(player.gridX, player.gridY);
 
-            // Ground Objects
-            currentChunk.bushes.forEach(bush => bush.draw());
-            currentChunk.rocks.forEach(rock => rock.draw());
+            // Ground & Object Rendering
+            chunk.bushes.forEach(b => b.draw());
+            chunk.rocks.forEach(r => r.draw());
+            chunk.trees.forEach(t => t.drawTrunk());
 
-            // Tree Trunks
-            currentChunk.trees.forEach(tree => tree.drawTrunk());
+            // Check Bush Proximity for UI Button
+            activeNearbyBush = null;
+            let closestDist = Infinity;
 
-            // Player
+            const rect = canvas.getBoundingClientRect();
+
+            chunk.bushes.forEach(bush => {
+                const dist = Math.hypot(player.x - bush.x, player.y - bush.y);
+                if (dist < INTERACTION_DISTANCE && dist < closestDist) {
+                    closestDist = dist;
+                    activeNearbyBush = bush;
+                }
+            });
+
+            if (activeNearbyBush) {
+                const screenX = rect.left + (activeNearbyBush.x * (rect.width / canvas.width));
+                const screenY = rect.top + ((activeNearbyBush.y - 35) * (rect.height / canvas.height));
+
+                mobileBushBtn.style.left = `${screenX}px`;
+                mobileBushBtn.style.top = `${screenY}px`;
+                mobileBushBtn.style.display = 'block';
+
+                if (!isMobile) {
+                    mobileBushBtn.textContent = "SEARCH [E]";
+                } else {
+                    mobileBushBtn.textContent = "SEARCH";
+                }
+            } else {
+                mobileBushBtn.style.display = 'none';
+            }
+
+            // Update & Render Monsters
+            chunk.monsters.forEach(m => {
+                m.update(deltaTime);
+                m.draw();
+            });
+
+            // Player Rendering
             ctx.fillStyle = player.color;
             ctx.beginPath();
             ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
             ctx.fill();
+
+            // Render Equipped Sword
+            if (inventory[selectedSlotIndex] && inventory[selectedSlotIndex].type === 'weapon') {
+                ctx.fillStyle = '#d5dbdb';
+                ctx.fillRect(player.x + 10, player.y - 15, 6, 20);
+                ctx.fillStyle = '#7f8c8d';
+                ctx.fillRect(player.x + 6, player.y + 2, 14, 4);
+            }
 
             ctx.fillStyle = '#ffffff';
             ctx.beginPath();
             ctx.arc(player.x, player.y, player.radius * 0.4, 0, Math.PI * 2);
             ctx.fill();
 
-            // Tree Tops
-            currentChunk.trees.forEach(tree => tree.drawCanopy());
-
-            if (isMobile) {
-                drawJoystick();
-            }
+            // Tree Tops (Overhead)
+            chunk.trees.forEach(t => t.drawCanopy());
 
             requestAnimationFrame(gameLoop);
         }
 
+        updateHotbarUI();
         requestAnimationFrame(gameLoop);
     </script>
 </body>
