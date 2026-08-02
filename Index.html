@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cache Hunter - Wrapping World</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #111111;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+        #game-container {
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+            background-color: #4d7a36;
+        }
+        #ui {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 10;
+            display: flex;
+            gap: 15px;
+        }
+        .sector-tag {
+            color: #f1c40f;
+        }
+        #instructions {
+            position: absolute;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            text-align: center;
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            white-space: nowrap;
+            z-index: 10;
+        }
+        .key {
+            background: #444;
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid #666;
+            font-family: monospace;
+        }
+
+        /* Mobile Controls */
+        #mobile-controls {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 20;
+        }
+        #mobile-controls.active {
+            display: block;
+        }
+        #search-btn {
+            position: absolute;
+            bottom: 25px;
+            right: 25px;
+            width: 80px;
+            height: 80px;
+            background: rgba(243, 156, 18, 0.85);
+            border: 3px solid #ffffff;
+            border-radius: 50%;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            text-shadow: 1px 1px 2px black;
+        }
+        #search-btn:active {
+            background: rgba(211, 84, 0, 0.95);
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        <div id="ui">
+            <div>Screen: <span id="sector" class="sector-tag">X: 0, Y: 0</span></div>
+            <div>Caches Found: <span id="score">0</span> / <span id="total">0</span></div>
+        </div>
+        <div id="instructions">
+            Move with <span class="key">WASD</span> / <span class="key">Arrows</span> | Hold <span class="key">SPACE</span> / <span class="key">E</span> / <b>Click</b> near bush to search
+        </div>
+
+        <div id="mobile-controls">
+            <div id="search-btn">SEARCH</div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('score');
+        const totalEl = document.getElementById('total');
+        const sectorEl = document.getElementById('sector');
+        const instructionsEl = document.getElementById('instructions');
+        const mobileControlsEl = document.getElementById('mobile-controls');
+        const searchBtn = document.getElementById('search-btn');
+
+        // Game Settings
+        const SEARCH_TIME_NEEDED = 1.2;
+        const INTERACTION_DISTANCE = 55;
+
+        // Player & Mobile State
+        const isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+        let isMobileSearching = false;
+
+        let joystick = {
+            active: false,
+            touchId: null,
+            startX: 0, startY: 0,
+            currX: 0, currY: 0,
+            maxRadius: 50
+        };
+
+        if (isMobile) {
+            mobileControlsEl.classList.add('active');
+            instructionsEl.innerHTML = "Drag <b>Left Side</b> to Move | Hold <b>SEARCH</b> near a bush";
+        }
+
+        const keys = {};
+        let isMouseHolding = false;
+
+        const player = {
+            gridX: 0,
+            gridY: 0,
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            radius: 14,
+            speed: 220,
+            color: '#3498db'
+        };
+
+        let totalCachesDiscoveredInWorld = 0;
+        let cachesFound = 0;
+
+        // World Storage (Saves loaded screens)
+        const worldMap = {};
+
+        // Object Classes
+        class Bush {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.radius = 26;
+                this.hasCache = Math.random() < 0.45;
+                this.searched = false;
+                this.searchProgress = 0;
+                this.leaves = [
+                    { dx: 0, dy: 0, r: this.radius },
+                    { dx: -9, dy: -7, r: this.radius * 0.7 },
+                    { dx: 9, dy: -7, r: this.radius * 0.7 },
+                    { dx: -7, dy: 9, r: this.radius * 0.7 },
+                    { dx: 7, dy: 9, r: this.radius * 0.7 }
+                ];
+            }
+
+            draw() {
+                ctx.fillStyle = this.searched ? '#425f30' : '#2b752f';
+                for (const leaf of this.leaves) {
+                    ctx.beginPath();
+                    ctx.arc(this.x + leaf.dx, this.y + leaf.dy, leaf.r, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                const dist = Math.hypot(player.x - this.x, player.y - this.y);
+                if (dist < INTERACTION_DISTANCE && !this.searched) {
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.radius + 4, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+
+                if (this.searched) {
+                    ctx.fillStyle = this.hasCache ? '#f1c40f' : 'rgba(0,0,0,0.3)';
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, 6, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                if (this.searchProgress > 0 && !this.searched) {
+                    const barW = 40, barH = 6;
+                    const barX = this.x - barW / 2;
+                    const barY = this.y - this.radius - 12;
+
+                    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+                    ctx.fillRect(barX, barY, barW, barH);
+                    ctx.fillStyle = '#f39c12';
+                    ctx.fillRect(barX, barY, barW * this.searchProgress, barH);
+                }
+            }
+        }
+
+        class Rock {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.radius = 20 + Math.random() * 12;
+            }
+
+            draw() {
+                ctx.fillStyle = '#7f8c8d';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#95a5a6';
+                ctx.beginPath();
+                ctx.arc(this.x - this.radius * 0.25, this.y - this.radius * 0.25, this.radius * 0.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        class Tree {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.trunkRadius = 14;
+                this.canopyRadius = 45 + Math.random() * 10;
+            }
+
+            drawTrunk() {
+                ctx.fillStyle = 'rgba(0,0,0,0.25)';
+                ctx.beginPath();
+                ctx.arc(this.x + 4, this.y + 4, this.trunkRadius, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#5d4037';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.trunkRadius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            drawCanopy() {
+                ctx.fillStyle = 'rgba(30, 86, 49, 0.92)';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y - 12, this.canopyRadius, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = 'rgba(46, 125, 50, 0.85)';
+                ctx.beginPath();
+                ctx.arc(this.x - 8, this.y - 18, this.canopyRadius * 0.65, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        // Screen Map Generator & Memory Manager
+        function getChunkKey(gx, gy) {
+            return `${gx},${gy}`;
+        }
+
+        function getOrCreateChunk(gx, gy) {
+            const key = getChunkKey(gx, gy);
+            if (worldMap[key]) {
+                return worldMap[key];
+            }
+
+            const bushes = [];
+            const rocks = [];
+            const trees = [];
+
+            const numBushes = Math.floor(Math.random() * 3) + 2;
+            const numRocks = Math.floor(Math.random() * 4) + 2;
+            const numTrees = Math.floor(Math.random() * 5) + 3;
+
+            const isSpawnChunk = (gx === 0 && gy === 0);
+
+            function isValidPos(x, y, rad) {
+                if (isSpawnChunk && Math.hypot(canvas.width/2 - x, canvas.height/2 - y) < 90) return false;
+                if (x < 60 || x > canvas.width - 60 || y < 60 || y > canvas.height - 60) return false;
+
+                for (let r of rocks) if (Math.hypot(r.x - x, r.y - y) < r.radius + rad + 10) return false;
+                for (let t of trees) if (Math.hypot(t.x - x, t.y - y) < t.trunkRadius + rad + 15) return false;
+                for (let b of bushes) if (Math.hypot(b.x - x, b.y - y) < b.radius + rad + 10) return false;
+                return true;
+            }
+
+            for (let i = 0; i < numRocks; i++) {
+                let x, y, r = 25, attempts = 0;
+                do {
+                    x = 60 + Math.random() * (canvas.width - 120);
+                    y = 60 + Math.random() * (canvas.height - 120);
+                    attempts++;
+                } while (!isValidPos(x, y, r) && attempts < 50);
+                if (attempts < 50) rocks.push(new Rock(x, y));
+            }
+
+            for (let i = 0; i < numTrees; i++) {
+                let x, y, r = 20, attempts = 0;
+                do {
+                    x = 60 + Math.random() * (canvas.width - 120);
+                    y = 60 + Math.random() * (canvas.height - 120);
+                    attempts++;
+                } while (!isValidPos(x, y, r) && attempts < 50);
+                if (attempts < 50) trees.push(new Tree(x, y));
+            }
+
+            for (let i = 0; i < numBushes; i++) {
+                let x, y, r = 26, attempts = 0;
+                do {
+                    x = 60 + Math.random() * (canvas.width - 120);
+                    y = 60 + Math.random() * (canvas.height - 120);
+                    attempts++;
+                } while (!isValidPos(x, y, r) && attempts < 50);
+                if (attempts < 50) {
+                    const bush = new Bush(x, y);
+                    bushes.push(bush);
+                    if (bush.hasCache) totalCachesDiscoveredInWorld++;
+                }
+            }
+
+            const newChunk = { bushes, rocks, trees };
+            worldMap[key] = newChunk;
+            totalEl.textContent = totalCachesDiscoveredInWorld;
+            return newChunk;
+        }
+
+        getOrCreateChunk(player.gridX, player.gridY);
+
+        // Input Listeners
+        window.addEventListener('keydown', e => {
+            const key = e.key.toLowerCase();
+            const code = e.code;
+
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'KeyW', 'KeyA', 'KeyS', 'KeyD'].includes(code) ||
+                ['arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'w', 'a', 's', 'd', ' '].includes(key)) {
+                e.preventDefault();
+            }
+
+            keys[code] = true;
+            keys[key] = true;
+        });
+
+        window.addEventListener('keyup', e => {
+            const key = e.key.toLowerCase();
+            const code = e.code;
+
+            keys[code] = false;
+            keys[key] = false;
+        });
+
+        canvas.addEventListener('mousedown', () => isMouseHolding = true);
+        window.addEventListener('mouseup', () => isMouseHolding = false);
+
+        if (isMobile) {
+            searchBtn.addEventListener('touchstart', (e) => { e.preventDefault(); isMobileSearching = true; });
+            window.addEventListener('touchend', (e) => {
+                let searchStillTouched = false;
+                for (let i = 0; i < e.touches.length; i++) if (e.touches[i].target === searchBtn) searchStillTouched = true;
+                if (!searchStillTouched) isMobileSearching = false;
+
+                if (joystick.active) {
+                    let joystickStillTouched = false;
+                    for (let i = 0; i < e.touches.length; i++) if (e.touches[i].identifier === joystick.touchId) joystickStillTouched = true;
+                    if (!joystickStillTouched) joystick.active = false;
+                }
+            });
+
+            window.addEventListener('touchstart', (e) => {
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    const touch = e.changedTouches[i];
+                    const rect = canvas.getBoundingClientRect();
+                    const touchX = touch.clientX - rect.left;
+                    if (touch.target !== searchBtn && touchX < rect.width / 2 && !joystick.active) {
+                        joystick.active = true;
+                        joystick.touchId = touch.identifier;
+                        joystick.startX = touch.clientX; joystick.startY = touch.clientY;
+                        joystick.currX = touch.clientX; joystick.currY = touch.clientY;
+                    }
+                }
+            });
+
+            window.addEventListener('touchmove', (e) => {
+                if (!joystick.active) return;
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    const touch = e.changedTouches[i];
+                    if (touch.identifier === joystick.touchId) {
+                        joystick.currX = touch.clientX;
+                        joystick.currY = touch.clientY;
+                    }
+                }
+            });
+        }
+
+        // Movement & Teleport Logic
+        function updatePlayer(deltaTime) {
+            let dx = 0, dy = 0;
+
+            if (keys['KeyW'] || keys['w'] || keys['ArrowUp'] || keys['arrowup']) dy -= 1;
+            if (keys['KeyS'] || keys['s'] || keys['ArrowDown'] || keys['arrowdown']) dy += 1;
+            if (keys['KeyA'] || keys['a'] || keys['ArrowLeft'] || keys['arrowleft']) dx -= 1;
+            if (keys['KeyD'] || keys['d'] || keys['ArrowRight'] || keys['arrowright']) dx += 1;
+
+            if (dx !== 0 && dy !== 0) { dx *= 0.7071; dy *= 0.7071; }
+
+            if (joystick.active && dx === 0 && dy === 0) {
+                const diffX = joystick.currX - joystick.startX;
+                const diffY = joystick.currY - joystick.startY;
+                const dist = Math.hypot(diffX, diffY);
+                if (dist > 5) {
+                    dx = diffX / Math.max(dist, joystick.maxRadius);
+                    dy = diffY / Math.max(dist, joystick.maxRadius);
+                }
+            }
+
+            let nextX = player.x + dx * player.speed * deltaTime;
+            let nextY = player.y + dy * player.speed * deltaTime;
+
+            const currentChunk = getOrCreateChunk(player.gridX, player.gridY);
+
+            // Rock Collisions
+            for (const rock of currentChunk.rocks) {
+                const dist = Math.hypot(nextX - rock.x, nextY - rock.y);
+                const minDist = player.radius + rock.radius;
+                if (dist < minDist) {
+                    const angle = Math.atan2(nextY - rock.y, nextX - rock.x);
+                    nextX = rock.x + Math.cos(angle) * minDist;
+                    nextY = rock.y + Math.sin(angle) * minDist;
+                }
+            }
+
+            // Tree Trunk Collisions
+            for (const tree of currentChunk.trees) {
+                const dist = Math.hypot(nextX - tree.x, nextY - tree.y);
+                const minDist = player.radius + tree.trunkRadius;
+                if (dist < minDist) {
+                    const angle = Math.atan2(nextY - tree.y, nextX - tree.x);
+                    nextX = tree.x + Math.cos(angle) * minDist;
+                    nextY = tree.y + Math.sin(angle) * minDist;
+                }
+            }
+
+            player.x = nextX;
+            player.y = nextY;
+
+            // Wrapping World Logic (Teleports to Opposite Edge)
+            if (player.x > canvas.width) {
+                player.gridX += 1;
+                player.x = player.radius + 2;
+                getOrCreateChunk(player.gridX, player.gridY);
+            } else if (player.x < 0) {
+                player.gridX -= 1;
+                player.x = canvas.width - player.radius - 2;
+                getOrCreateChunk(player.gridX, player.gridY);
+            }
+
+            if (player.y < 0) {
+                // Going TOP Edge -> Screen Y increases (+1), Teleport to BOTTOM Edge
+                player.gridY += 1;
+                player.y = canvas.height - player.radius - 2;
+                getOrCreateChunk(player.gridX, player.gridY);
+            } else if (player.y > canvas.height) {
+                // Going BOTTOM Edge -> Screen Y decreases (-1), Teleport to TOP Edge
+                player.gridY -= 1;
+                player.y = player.radius + 2;
+                getOrCreateChunk(player.gridX, player.gridY);
+            }
+
+            sectorEl.textContent = `X: ${player.gridX}, Y: ${player.gridY}`;
+        }
+
+        // Search Mechanics
+        function updateInteraction(deltaTime) {
+            const isSearching = keys['Space'] || keys['KeyE'] || keys['e'] || keys[' '] || isMouseHolding || isMobileSearching;
+            const currentChunk = getOrCreateChunk(player.gridX, player.gridY);
+
+            currentChunk.bushes.forEach(bush => {
+                const dist = Math.hypot(player.x - bush.x, player.y - bush.y);
+
+                if (dist < INTERACTION_DISTANCE && isSearching && !bush.searched) {
+                    bush.searchProgress += deltaTime / SEARCH_TIME_NEEDED;
+
+                    if (bush.searchProgress >= 1) {
+                        bush.searched = true;
+                        bush.searchProgress = 0;
+                        if (bush.hasCache) {
+                            cachesFound++;
+                            scoreEl.textContent = cachesFound;
+                        }
+                    }
+                } else {
+                    bush.searchProgress = Math.max(0, bush.searchProgress - deltaTime * 2);
+                }
+            });
+        }
+
+        function drawJoystick() {
+            if (!joystick.active) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+
+            const baseCanvasX = (joystick.startX - rect.left) * scaleX;
+            const baseCanvasY = (joystick.startY - rect.top) * scaleY;
+
+            const diffX = joystick.currX - joystick.startX;
+            const diffY = joystick.currY - joystick.startY;
+            const dist = Math.min(Math.hypot(diffX, diffY), joystick.maxRadius);
+            const angle = Math.atan2(diffY, diffX);
+
+            const stickCanvasX = baseCanvasX + (Math.cos(angle) * dist) * scaleX;
+            const stickCanvasY = baseCanvasY + (Math.sin(angle) * dist) * scaleY;
+
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.arc(baseCanvasX, baseCanvasY, joystick.maxRadius * scaleX, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+            ctx.beginPath();
+            ctx.arc(stickCanvasX, stickCanvasY, 20 * scaleX, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Render Loop
+        let lastTime = performance.now();
+        function gameLoop(currentTime) {
+            const deltaTime = (currentTime - lastTime) / 1000;
+            lastTime = currentTime;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            updatePlayer(deltaTime);
+            updateInteraction(deltaTime);
+
+            const currentChunk = getOrCreateChunk(player.gridX, player.gridY);
+
+            // Ground Objects
+            currentChunk.bushes.forEach(bush => bush.draw());
+            currentChunk.rocks.forEach(rock => rock.draw());
+
+            // Tree Trunks
+            currentChunk.trees.forEach(tree => tree.drawTrunk());
+
+            // Player
+            ctx.fillStyle = player.color;
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, player.radius * 0.4, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Tree Tops
+            currentChunk.trees.forEach(tree => tree.drawCanopy());
+
+            if (isMobile) {
+                drawJoystick();
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>
