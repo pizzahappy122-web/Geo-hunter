@@ -1,1029 +1,150 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Cache Hunter</title>
-    <style>
-        * {
-            box-sizing: border-box;
-            user-select: none;
-            -webkit-user-select: none;
-            touch-action: none;
-        }
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: #111111;
-            color: #ffffff;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            overflow: hidden;
-        }
-        #game-container {
-            position: relative;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
-            border-radius: 12px;
-            overflow: hidden;
-        }
-        canvas {
-            display: block;
-            background-color: #4d7a36;
-            image-rendering: pixelated;
-        }
-        #ui {
-            position: absolute;
-            top: 15px;
-            left: 15px;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 10px 18px;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: bold;
-            letter-spacing: 0.5px;
-            backdrop-filter: blur(4px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            z-index: 10;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-        .sector-tag {
-            color: #f1c40f;
-        }
+// ========================================================
+// 🖼️ EXTERNAL IMAGE SPRITE ANIMATION LOGIC
+// ========================================================
 
-        #quest-btn {
-            background: #8e44ad;
-            color: white;
-            border: 1px solid #9b59b6;
-            padding: 4px 12px;
-            border-radius: 6px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        #quest-btn:hover {
-            background: #9b59b6;
-        }
-        
-        #hotbar {
-            position: absolute;
-            bottom: 15px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 8px;
-            background: rgba(0, 0, 0, 0.75);
-            padding: 6px;
-            border-radius: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            z-index: 15;
-            backdrop-filter: blur(4px);
-        }
-        .slot {
-            width: 50px;
-            height: 50px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 6px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            font-size: 10px;
-            text-align: center;
-            position: relative;
-            cursor: pointer;
-            pointer-events: auto;
-        }
-        .slot.selected {
-            border-color: #f1c40f;
-            background: rgba(241, 196, 15, 0.2);
-        }
-        .slot-num {
-            position: absolute;
-            top: 2px;
-            left: 4px;
-            font-size: 10px;
-            color: #aaa;
-        }
-        .item-icon {
-            font-size: 18px;
-            margin-top: 4px;
-        }
+// 1. Define paths for all 12 frame images
+const SPRITE_FILES = {
+    down:  ['down1.png',  'down2.png',  'down3.png'],
+    up:    ['up1.png',    'up2.png',    'up3.png'],
+    left:  ['left1.png',  'left2.png',  'left3.png'],
+    right: ['right1.png', 'right2.png', 'right3.png']
+};
 
-        #mobile-bush-btn {
-            display: none;
-            position: absolute;
-            transform: translate(-50%, -100%);
-            background: #f39c12;
-            color: white;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-weight: bold;
-            font-size: 14px;
-            border: 2px solid white;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-            pointer-events: auto;
-            z-index: 25;
-            cursor: pointer;
-        }
+// 2. Preload all image assets
+const playerSprites = {
+    down: [],
+    up: [],
+    left: [],
+    right: []
+};
 
-        /* Modal Styles */
-        .game-modal {
-            display: none;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(20, 20, 20, 0.95);
-            border: 2px solid #f1c40f;
-            border-radius: 12px;
-            padding: 20px;
-            text-align: center;
-            z-index: 30;
-            box-shadow: 0 0 20px rgba(0,0,0,0.8);
-            min-width: 300px;
-            pointer-events: auto;
-        }
-        .game-modal h3 {
-            margin: 0 0 15px 0;
-            color: #f1c40f;
-        }
-        .modal-btn {
-            display: block;
-            width: 100%;
-            padding: 10px;
-            margin: 8px 0;
-            background: #34495e;
-            color: white;
-            border: 1px solid #5d6d7e;
-            border-radius: 6px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        .modal-btn:hover, .modal-btn:active {
-            background: #2c3e50;
-        }
-        .modal-btn.warning {
-            background: #e74c3c;
-        }
+let spritesLoadedCount = 0;
+const totalSprites = 12;
 
-        /* Quest Card Styling */
-        .quest-card {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 8px;
-            padding: 12px;
-            margin-bottom: 12px;
-            text-align: left;
-        }
-        .quest-title {
-            font-weight: bold;
-            font-size: 14px;
-            color: #e67e22;
-        }
-        .quest-progress {
-            font-size: 13px;
-            margin: 6px 0;
-            color: #ccc;
-        }
-        .code-box {
-            font-family: monospace;
-            background: #000;
-            color: #2ecc71;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-weight: bold;
-            display: inline-block;
-            margin-top: 4px;
-            letter-spacing: 1px;
-        }
-        .code-locked {
-            color: #7f8c8d;
-        }
-
-        #steal-warning {
-            display: none;
-            position: absolute;
-            top: 70px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #e74c3c;
-            color: white;
-            padding: 10px 20px;
-            font-weight: bold;
-            font-size: 18px;
-            border-radius: 8px;
-            border: 2px solid white;
-            box-shadow: 0 0 15px rgba(231, 76, 60, 0.8);
-            z-index: 40;
-            animation: pulse 0.8s infinite alternate;
-        }
-        @keyframes pulse {
-            from { transform: translateX(-50%) scale(1); }
-            to { transform: translateX(-50%) scale(1.05); }
-        }
-
-        /* Sprite Viewer Overlay */
-        #sprite-viewer {
-            margin-top: 10px;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 8px 16px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.15);
-        }
-    </style>
-</head>
-<body>
-
-    <div id="game-container">
-        <canvas id="gameCanvas" width="800" height="600"></canvas>
-        
-        <div id="ui">
-            <div>Screen: <span id="sector" class="sector-tag">X: 0, Y: 0</span></div>
-            <div>Caches: <span id="score">0</span> / <span id="total">0</span></div>
-            <button id="quest-btn" onclick="openQuestModal()">QUESTS</button>
-        </div>
-
-        <div id="steal-warning">⚠️ DON'T STEAL CACHES! ⚠️</div>
-
-        <button id="mobile-bush-btn">SEARCH [E]</button>
-
-        <div id="hotbar">
-            <div class="slot selected" onclick="selectSlot(0)">
-                <span class="slot-num">1</span>
-                <span class="item-icon">🗡️</span>
-            </div>
-            <div class="slot" onclick="selectSlot(1)"><span class="slot-num">2</span><span class="item-icon"></span></div>
-            <div class="slot" onclick="selectSlot(2)"><span class="slot-num">3</span><span class="item-icon"></span></div>
-            <div class="slot" onclick="selectSlot(3)"><span class="slot-num">4</span><span class="item-icon"></span></div>
-            <div class="slot" onclick="selectSlot(4)"><span class="slot-num">5</span><span class="item-icon"></span></div>
-        </div>
-
-        <!-- Cache Modal -->
-        <div id="cache-modal" class="game-modal">
-            <h3 id="modal-title">Cache Found!</h3>
-            <div id="modal-actions"></div>
-            <button class="modal-btn warning" onclick="closeModal('cache-modal')">Close</button>
-        </div>
-
-        <!-- Quest Modal -->
-        <div id="quest-modal" class="game-modal">
-            <h3>📜 Active Quests</h3>
-            
-            <div class="quest-card">
-                <div class="quest-title">Quest 1: Master Cache Hunter</div>
-                <div class="quest-progress">Find 20 Caches (<span id="q1-count">0</span> / 20)</div>
-                <div>Code 1: <span id="q1-code" class="code-box code-locked">🔒 LOCKED</span></div>
-            </div>
-
-            <div class="quest-card">
-                <div class="quest-title">Quest 2: Monster Slayer</div>
-                <div class="quest-progress">Defeat 15 Enemies (<span id="q2-count">0</span> / 15)</div>
-                <div>Code 2: <span id="q2-code" class="code-box code-locked">🔒 LOCKED</span></div>
-            </div>
-
-            <button class="modal-btn warning" onclick="closeModal('quest-modal')">Close</button>
-        </div>
-    </div>
-
-    <!-- On-screen Sprite Preview -->
-    <div id="sprite-viewer">
-        <span style="font-size: 12px; color: #aaa; font-weight: bold;">Player Spritesheet (16x16):</span>
-        <canvas id="spritePreview" width="128" height="128" style="image-rendering: pixelated; background: #222; border: 1px solid #444; border-radius: 4px;"></canvas>
-    </div>
-
-    <script>
-        const GAME_SPRITES = {
-            rockSheet: 'Rock1.png',      
-            pineTreeSheet: 'Tree1.png',  
-            leafyTreeSheet: 'Tree1.png', 
-            bushImage: 'Bush1.png'       
+Object.keys(SPRITE_FILES).forEach(dir => {
+    SPRITE_FILES[dir].forEach((path, index) => {
+        const img = new Image();
+        img.src = path;
+        img.onload = () => {
+            spritesLoadedCount++;
         };
+        playerSprites[dir][index] = img;
+    });
+});
 
-        const images = {};
-        for (const [key, path] of Object.entries(GAME_SPRITES)) {
-            if (path && path.trim() !== '') {
-                images[key] = new Image();
-                images[key].src = path;
-            }
+// Direction keys corresponding to sprite object keys
+const DIRECTION_KEYS = ['down', 'up', 'left', 'right'];
+
+// ========================================================
+// 🚶 MOVEMENT & ANIMATION TIMER LOGIC
+// ========================================================
+function updatePlayer(deltaTime) {
+    if (player.isAttacking) {
+        player.attackTimer -= deltaTime;
+        if (player.attackTimer <= 0) player.isAttacking = false;
+    }
+
+    let dx = 0, dy = 0;
+    if (keys['keyw'] || keys['arrowup']) dy -= 1;
+    if (keys['keys'] || keys['arrowdown']) dy += 1;
+    if (keys['keya'] || keys['arrowleft']) dx -= 1;
+    if (keys['keyd'] || keys['arrowright']) dx += 1;
+
+    if (joystick.active && dx === 0 && dy === 0) {
+        const diffX = joystick.currX - joystick.startX;
+        const diffY = joystick.currY - joystick.startY;
+        const dist = Math.hypot(diffX, diffY);
+        if (dist > 5) {
+            dx = diffX / Math.max(dist, joystick.maxRadius);
+            dy = diffY / Math.max(dist, joystick.maxRadius);
+        }
+    }
+
+    player.isMoving = (dx !== 0 || dy !== 0);
+
+    if (player.isMoving) {
+        // Direction selection: 0 = down, 1 = up, 2 = left, 3 = right
+        if (Math.abs(dx) > Math.abs(dy)) {
+            player.direction = dx > 0 ? 3 : 2;
+        } else {
+            player.direction = dy > 0 ? 0 : 1;
         }
 
-        // ========================================================
-        // 🎨 PROCEDURAL 16x16 HUMAN PLAYER (GREEN CLOTHES)
-        // ========================================================
-        const playerSpriteCanvas = document.createElement('canvas');
-        playerSpriteCanvas.width = 64; playerSpriteCanvas.height = 64;
-        const pCtx = playerSpriteCanvas.getContext('2d');
-
-        // Human Palette (Green tunic, brown boots & belt, human skin/hair)
-        const C = {
-            R: '#4a2e18', // Dark Hair
-            H: '#ffdbac', // Human Skin Tone
-            S: '#e0ac69', // Skin Shadow
-            G: '#27ae60', // Green Shirt / Tunic
-            D: '#1e8449', // Dark Green Shading
-            L: '#2ecc71', // Light Green Highlight
-            B: '#7f5217', // Belt / Brown Accent
-            P: '#34495e', // Dark Pants
-            K: '#5c3a21', // Leather Boots
-            E: '#2c3e50', // Eyes
-            O: '#1a1a1a'  // Dark Outline
-        };
-
-        // Pixel grids for Down, Up, and Side directions
-        const rawFrames = {
-            down: [
-                "....OOOOOOOO....",
-                "...OORRRRRROO...",
-                "..OORRRRRRRROO..",
-                "..OOHHEEHHEEOO..",
-                "..OOHHHSSHHHOO..",
-                "...OOSSSSSSOO...",
-                "..OOGGGGGGGGOO..",
-                ".OOGGGGGGGGGGOO.",
-                ".OOGGGLGGGGGGGO.",
-                ".OOGGGGGGGGGGOO.",
-                "..OOBBBBBBBBOO..",
-                "..OO33333333OO..",
-                "..OO333..333OO..",
-                "..OOKKK..KKKOO..",
-                "..OOKKK..KKKOO..",
-                "...OOOO..OOOO..."
-            ],
-            up: [
-                "....OOOOOOOO....",
-                "...OORRRRRROO...",
-                "..OORRRRRRRROO..",
-                "..OORRRRRRRROO..",
-                "..OORRRRRRRROO..",
-                "...OORRRRRROO...",
-                "..OOGGGGGGGGOO..",
-                ".OOGGGGGGGGGGOO.",
-                ".OOGGGDDGGGGGOO.",
-                ".OOGGGGGGGGGGOO.",
-                "..OOBBBBBBBBOO..",
-                "..OO33333333OO..",
-                "..OO333..333OO..",
-                "..OOKKK..KKKOO..",
-                "..OOKKK..KKKOO..",
-                "...OOOO..OOOO..."
-            ],
-            side: [
-                "....OOOOOOOO....",
-                "...OORRRRRROO...",
-                "..OORRRRRRRROO..",
-                "..OORREEEHHHHH..",
-                "..OOHHHSSHHHOO..",
-                "...OOSSSSSSOO...",
-                "..OOGGGGGGGGOO..",
-                ".OOGGGGGGGGGGOO.",
-                ".OOGGGLGGGGGGGO.",
-                ".OOGGGGGGGGGGOO.",
-                "..OOBBBBBBBBOO..",
-                "..OO33333333OO..",
-                "..OO333..333OO..",
-                "..OOKKK..KKKOO..",
-                "..OOKKK..KKKOO..",
-                "...OOOO..OOOO..."
-            ]
-        };
-
-        function drawPixelData(map, offsetX, offsetY, flip = false, legFrame = 0) {
-            pCtx.save();
-            if (flip) {
-                pCtx.translate(offsetX + 16, offsetY);
-                pCtx.scale(-1, 1);
-            } else {
-                pCtx.translate(offsetX, offsetY);
-            }
-
-            for (let y = 0; y < 16; y++) {
-                let row = map[y];
-                if (y >= 12) {
-                    if (legFrame === 1) { // Left step
-                        if (y >= 13) row = row.substring(0, 2) + "K" + row.substring(3, 11) + "." + row.substring(12);
-                    } else if (legFrame === 3) { // Right step
-                        if (y >= 13) row = row.substring(0, 5) + "." + row.substring(6, 13) + "K" + row.substring(14);
-                    }
-                }
-
-                for (let x = 0; x < 16; x++) {
-                    const ch = row[x];
-                    if (ch === '.') continue;
-                    pCtx.fillStyle = C[ch] || C.O;
-                    pCtx.fillRect(x, y, 1, 1);
-                }
-            }
-            pCtx.restore();
+        // Cycle frame every 0.5 seconds (0 -> 1 -> 2 -> 0 maps to frame 1 -> 2 -> 3 -> 1)
+        player.animTimer += deltaTime;
+        if (player.animTimer >= 0.5) {
+            player.animTimer = 0;
+            player.animFrame = (player.animFrame + 1) % 3;
         }
+    } else {
+        // Reset to Frame 1 (Index 0) when idle
+        player.animFrame = 0;
+        player.animTimer = 0;
+    }
 
-        const dirs = ['down', 'up', 'side', 'side'];
-        for (let dirIdx = 0; dirIdx < 4; dirIdx++) {
-            const isLeft = (dirIdx === 2);
-            const map = rawFrames[dirs[dirIdx]];
-            for (let frame = 0; frame < 4; frame++) {
-                drawPixelData(map, frame * 16, dirIdx * 16, isLeft, frame);
-            }
+    if (dx !== 0 && dy !== 0) { dx *= 0.7071; dy *= 0.7071; }
+
+    let nextX = player.x + dx * player.speed * deltaTime;
+    let nextY = player.y + dy * player.speed * deltaTime;
+
+    const currentChunk = getOrCreateChunk(player.gridX, player.gridY);
+    
+    // Collisions
+    for (const rock of currentChunk.rocks) {
+        const dist = Math.hypot(nextX - rock.x, nextY - rock.y);
+        const minDist = player.radius + rock.radius;
+        if (dist < minDist) {
+            const angle = Math.atan2(nextY - rock.y, nextX - rock.x);
+            nextX = rock.x + Math.cos(angle) * minDist;
+            nextY = rock.y + Math.sin(angle) * minDist;
         }
+    }
 
-        // Render preview canvas below game
-        const prevCtx = document.getElementById('spritePreview').getContext('2d');
-        prevCtx.imageSmoothingEnabled = false;
-        prevCtx.drawImage(playerSpriteCanvas, 0, 0, 128, 128);
-
-        // ========================================================
-        // 🎮 GAME LOGIC
-        // ========================================================
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        const scoreEl = document.getElementById('score');
-        const totalEl = document.getElementById('total');
-        const sectorEl = document.getElementById('sector');
-        const mobileBushBtn = document.getElementById('mobile-bush-btn');
-        const cacheModal = document.getElementById('cache-modal');
-        const questModal = document.getElementById('quest-modal');
-        const modalActions = document.getElementById('modal-actions');
-        const modalTitle = document.getElementById('modal-title');
-        const stealWarning = document.getElementById('steal-warning');
-
-        const isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
-        const INTERACTION_DISTANCE = 55;
-
-        // Quests State
-        const questState = {
-            cachesFound: 0,
-            cachesTarget: 20,
-            code1: "CACHE-9921",
-            monstersDefeated: 0,
-            monstersTarget: 15,
-            code2: "SLAYER-7740"
-        };
-
-        const player = {
-            gridX: 0,
-            gridY: 0,
-            x: canvas.width / 2,
-            y: canvas.height / 2,
-            radius: 12,
-            speed: 220,
-            direction: 0,
-            animTimer: 0,
-            animFrame: 0,
-            isMoving: false,
-            isAttacking: false,
-            attackTimer: 0
-        };
-
-        const inventory = [
-            { name: "Wooden Sword", type: "weapon", icon: "🗡️" },
-            null, null, null, null
-        ];
-        let selectedSlotIndex = 0;
-
-        function updateHotbarUI() {
-            const slots = document.querySelectorAll('.slot');
-            slots.forEach((slot, idx) => {
-                if (idx === selectedSlotIndex) slot.classList.add('selected');
-                else slot.classList.remove('selected');
-
-                const item = inventory[idx];
-                const iconSpan = slot.querySelector('.item-icon');
-                iconSpan.textContent = item ? item.icon : "";
-            });
+    for (const tree of currentChunk.trees) {
+        const dist = Math.hypot(nextX - tree.x, nextY - tree.y);
+        const minDist = player.radius + tree.trunkRadius;
+        if (dist < minDist) {
+            const angle = Math.atan2(nextY - tree.y, nextX - tree.x);
+            nextX = tree.x + Math.cos(angle) * minDist;
+            nextY = tree.y + Math.sin(angle) * minDist;
         }
-
-        function selectSlot(index) {
-            selectedSlotIndex = index;
-            updateHotbarUI();
-        }
-
-        let activeHeldCacheTime = 0;
-
-        function checkHeldCacheTimer(deltaTime) {
-            const holdsCache = inventory.some(item => item && item.type === 'cache');
-            if (holdsCache) {
-                activeHeldCacheTime += deltaTime;
-                if (activeHeldCacheTime > 5) {
-                    stealWarning.style.display = 'block';
-                }
-            } else {
-                activeHeldCacheTime = 0;
-                stealWarning.style.display = 'none';
-            }
-        }
-
-        let joystick = {
-            active: false, touchId: null,
-            startX: 0, startY: 0,
-            currX: 0, currY: 0,
-            maxRadius: 50
-        };
-
-        const keys = {};
-        const worldMap = {};
-        let totalCachesDiscoveredInWorld = 0;
-        let activeNearbyBush = null;
-
-        class Bush {
-            constructor(x, y) {
-                this.x = x; this.y = y;
-                this.radius = 26;
-                this.hasCache = Math.random() < 0.5;
-                this.cacheTaken = false;
-                this.hasTrackable = Math.random() < 0.4;
-                this.trackableTaken = false;
-                this.signed = false;
-                this.leaves = [
-                    { dx: 0, dy: 0, r: this.radius },
-                    { dx: -9, dy: -7, r: this.radius * 0.7 },
-                    { dx: 9, dy: -7, r: this.radius * 0.7 },
-                    { dx: -7, dy: 9, r: this.radius * 0.7 },
-                    { dx: 7, dy: 9, r: this.radius * 0.7 }
-                ];
-            }
-
-            draw() {
-                const img = images.bushImage;
-                if (img && img.complete && img.naturalWidth !== 0) {
-                    ctx.drawImage(img, this.x - 30, this.y - 30, 60, 60);
-                } else {
-                    ctx.fillStyle = this.signed ? '#27ae60' : '#2b752f';
-                    for (const leaf of this.leaves) {
-                        ctx.beginPath();
-                        ctx.arc(this.x + leaf.dx, this.y + leaf.dy, leaf.r, 0, Math.PI * 2);
-                        ctx.fill();
-                    }
-                }
-
-                if (this.signed) {
-                    ctx.fillStyle = '#f1c40f';
-                    ctx.beginPath();
-                    ctx.arc(this.x, this.y, 6, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-            }
-        }
-
-        class Rock {
-            constructor(x, y) {
-                this.x = x; this.y = y;
-                this.radius = 22;
-            }
-
-            draw() {
-                const img = images.rockSheet;
-                if (img && img.complete && img.naturalWidth !== 0) {
-                    ctx.drawImage(img, this.x - 30, this.y - 25, 60, 50);
-                } else {
-                    ctx.fillStyle = '#7f8c8d';
-                    ctx.beginPath();
-                    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-            }
-        }
-
-        class Tree {
-            constructor(x, y) {
-                this.x = x; this.y = y;
-                this.trunkRadius = 14;
-            }
-
-            drawCanopy() {
-                const img = images.pineTreeSheet;
-                if (img && img.complete && img.naturalWidth !== 0) {
-                    ctx.drawImage(img, this.x - 40, this.y - 80, 80, 95);
-                } else {
-                    ctx.fillStyle = 'rgba(46, 125, 50, 0.85)';
-                    ctx.beginPath();
-                    ctx.arc(this.x, this.y - 12, 40, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-            }
-        }
-
-        class Monster {
-            constructor(x, y) {
-                this.x = x; this.y = y;
-                this.radius = 14;
-                this.speed = 120;
-                this.detectionRange = 180;
-                this.isChasing = false;
-                this.alive = true;
-            }
-
-            update(deltaTime) {
-                if (!this.alive) return;
-                const dist = Math.hypot(player.x - this.x, player.y - this.y);
-                if (dist < this.detectionRange) {
-                    this.isChasing = true;
-                    const angle = Math.atan2(player.y - this.y, player.x - this.x);
-                    this.x += Math.cos(angle) * this.speed * deltaTime;
-                    this.y += Math.sin(angle) * this.speed * deltaTime;
-                } else {
-                    this.isChasing = false;
-                }
-            }
-
-            draw() {
-                if (!this.alive) return;
-                if (this.isChasing) {
-                    ctx.fillStyle = '#e74c3c';
-                    ctx.font = 'bold 22px Arial';
-                    ctx.textAlign = 'center';
-                    ctx.fillText('!', this.x, this.y - 24);
-                }
-
-                ctx.strokeStyle = '#e74c3c';
-                ctx.lineWidth = 3;
-                ctx.fillStyle = '#3498db';
-
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.stroke();
-
-                ctx.fillStyle = '#ffffff';
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.radius * 0.4, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
-
-        function getOrCreateChunk(gx, gy) {
-            const key = `${gx},${gy}`;
-            if (worldMap[key]) return worldMap[key];
-
-            const bushes = [], rocks = [], trees = [], monsters = [];
-            const isSpawn = (gx === 0 && gy === 0);
-
-            for (let i = 0; i < 4; i++) {
-                bushes.push(new Bush(80 + Math.random() * 640, 80 + Math.random() * 440));
-                if (bushes[i].hasCache) totalCachesDiscoveredInWorld++;
-            }
-
-            for (let i = 0; i < 3; i++) {
-                rocks.push(new Rock(80 + Math.random() * 640, 80 + Math.random() * 440));
-                trees.push(new Tree(80 + Math.random() * 640, 80 + Math.random() * 440));
-            }
-
-            if (!isSpawn) {
-                const numMonsters = Math.floor(Math.random() * 2) + 1;
-                for (let i = 0; i < numMonsters; i++) {
-                    monsters.push(new Monster(100 + Math.random() * 600, 100 + Math.random() * 400));
-                }
-            }
-
-            const chunk = { bushes, rocks, trees, monsters };
-            worldMap[key] = chunk;
-            totalEl.textContent = totalCachesDiscoveredInWorld;
-            return chunk;
-        }
-
-        getOrCreateChunk(0, 0);
-
-        function triggerAttack() {
-            if (player.isAttacking) return;
-            player.isAttacking = true;
-            player.attackTimer = 0.25;
-
-            const chunk = getOrCreateChunk(player.gridX, player.gridY);
-            chunk.monsters.forEach(m => {
-                if (!m.alive) return;
-                const dist = Math.hypot(player.x - m.x, player.y - m.y);
-                if (dist < 48) {
-                    m.alive = false;
-                    questState.monstersDefeated++;
-                    updateQuestProgress();
-                }
-            });
-        }
-
-        window.addEventListener('keydown', e => {
-            keys[e.code] = true;
-            keys[e.key.toLowerCase()] = true;
-
-            if (['1', '2', '3', '4', '5'].includes(e.key)) {
-                selectSlot(parseInt(e.key) - 1);
-            }
-
-            if ((e.code === 'KeyE' || e.key.toLowerCase() === 'e') && activeNearbyBush) {
-                openCacheModal(activeNearbyBush);
-            }
-
-            if (e.code === 'Space') {
-                triggerAttack();
-            }
-        });
-
-        window.addEventListener('keyup', e => {
-            keys[e.code] = false;
-            keys[e.key.toLowerCase()] = false;
-        });
-
-        canvas.addEventListener('click', () => {
-            triggerAttack();
-        });
-
-        if (isMobile) {
-            window.addEventListener('touchstart', e => {
-                for (let i = 0; i < e.changedTouches.length; i++) {
-                    const touch = e.changedTouches[i];
-                    if (touch.clientX < window.innerWidth / 2 && !joystick.active) {
-                        joystick.active = true;
-                        joystick.touchId = touch.identifier;
-                        joystick.startX = touch.clientX; joystick.startY = touch.clientY;
-                        joystick.currX = touch.clientX; joystick.currY = touch.clientY;
-                    }
-                }
-            });
-
-            window.addEventListener('touchmove', e => {
-                if (!joystick.active) return;
-                for (let i = 0; i < e.changedTouches.length; i++) {
-                    const touch = e.changedTouches[i];
-                    if (touch.identifier === joystick.touchId) {
-                        joystick.currX = touch.clientX; joystick.currY = touch.clientY;
-                    }
-                }
-            });
-
-            window.addEventListener('touchend', e => {
-                if (joystick.active) {
-                    for (let i = 0; i < e.changedTouches.length; i++) {
-                        if (e.changedTouches[i].identifier === joystick.touchId) joystick.active = false;
-                    }
-                }
-            });
-        }
-
-        mobileBushBtn.addEventListener('click', () => {
-            if (activeNearbyBush) openCacheModal(activeNearbyBush);
-        });
-
-        function updateQuestProgress() {
-            document.getElementById('q1-count').textContent = questState.cachesFound;
-            document.getElementById('q2-count').textContent = questState.monstersDefeated;
-
-            const q1Code = document.getElementById('q1-code');
-            if (questState.cachesFound >= questState.cachesTarget) {
-                q1Code.textContent = questState.code1;
-                q1Code.classList.remove('code-locked');
-            }
-
-            const q2Code = document.getElementById('q2-code');
-            if (questState.monstersDefeated >= questState.monstersTarget) {
-                q2Code.textContent = questState.code2;
-                q2Code.classList.remove('code-locked');
-            }
-        }
-
-        function openQuestModal() {
-            updateQuestProgress();
-            questModal.style.display = 'block';
-        }
-
-        function openCacheModal(bush) {
-            modalActions.innerHTML = "";
-            const pcHint = (key) => isMobile ? "" : ` [Key ${key}]`;
-
-            if (bush.hasCache && !bush.cacheTaken) {
-                modalTitle.textContent = "Cache Discovered!";
-
-                const signBtn = document.createElement('button');
-                signBtn.className = "modal-btn";
-                signBtn.textContent = `Sign Cache${pcHint('1')}`;
-                signBtn.onclick = () => {
-                    if (!bush.signed) {
-                        bush.signed = true;
-                        questState.cachesFound++;
-                        scoreEl.textContent = questState.cachesFound;
-                        updateQuestProgress();
-                    }
-                    closeModal('cache-modal');
-                };
-                modalActions.appendChild(signBtn);
-
-                const takeBtn = document.createElement('button');
-                takeBtn.className = "modal-btn";
-                takeBtn.textContent = `Take Cache${pcHint('2')}`;
-                takeBtn.onclick = () => {
-                    const emptyIndex = inventory.findIndex(slot => slot === null);
-                    if (emptyIndex !== -1) {
-                        inventory[emptyIndex] = { name: "Cache", type: "cache", icon: "📦" };
-                        bush.cacheTaken = true;
-                        updateHotbarUI();
-                    } else {
-                        alert("Inventory Full!");
-                    }
-                    closeModal('cache-modal');
-                };
-                modalActions.appendChild(takeBtn);
-
-                if (bush.hasTrackable && !bush.trackableTaken) {
-                    const trackBtn = document.createElement('button');
-                    trackBtn.className = "modal-btn";
-                    trackBtn.textContent = `Take Trackable${pcHint('3')}`;
-                    trackBtn.onclick = () => {
-                        const emptyIndex = inventory.findIndex(slot => slot === null);
-                        if (emptyIndex !== -1) {
-                            inventory[emptyIndex] = { name: "Trackable", type: "trackable", icon: "🏷️" };
-                            bush.trackableTaken = true;
-                            updateHotbarUI();
-                        } else {
-                            alert("Inventory Full!");
-                        }
-                        closeModal('cache-modal');
-                    };
-                    modalActions.appendChild(trackBtn);
-                }
-            } else {
-                modalTitle.textContent = "Empty Bush";
-            }
-
-            const cacheSlotIndex = inventory.findIndex(item => item && item.type === 'cache');
-            if (cacheSlotIndex !== -1) {
-                const putBackBtn = document.createElement('button');
-                putBackBtn.className = "modal-btn";
-                putBackBtn.textContent = `Put Back Cache${pcHint('4')}`;
-                putBackBtn.onclick = () => {
-                    inventory[cacheSlotIndex] = null;
-                    bush.hasCache = true;
-                    bush.cacheTaken = false;
-                    updateHotbarUI();
-                    closeModal('cache-modal');
-                };
-                modalActions.appendChild(putBackBtn);
-            }
-
-            cacheModal.style.display = 'block';
-        }
-
-        function closeModal(id) {
-            document.getElementById(id).style.display = 'none';
-        }
-
-        function updatePlayer(deltaTime) {
-            if (player.isAttacking) {
-                player.attackTimer -= deltaTime;
-                if (player.attackTimer <= 0) player.isAttacking = false;
-            }
-
-            let dx = 0, dy = 0;
-            if (keys['keyw'] || keys['arrowup']) dy -= 1;
-            if (keys['keys'] || keys['arrowdown']) dy += 1;
-            if (keys['keya'] || keys['arrowleft']) dx -= 1;
-            if (keys['keyd'] || keys['arrowright']) dx += 1;
-
-            if (joystick.active && dx === 0 && dy === 0) {
-                const diffX = joystick.currX - joystick.startX;
-                const diffY = joystick.currY - joystick.startY;
-                const dist = Math.hypot(diffX, diffY);
-                if (dist > 5) {
-                    dx = diffX / Math.max(dist, joystick.maxRadius);
-                    dy = diffY / Math.max(dist, joystick.maxRadius);
-                }
-            }
-
-            player.isMoving = (dx !== 0 || dy !== 0);
-
-            if (player.isMoving) {
-                if (Math.abs(dx) > Math.abs(dy)) {
-                    player.direction = dx > 0 ? 3 : 2;
-                } else {
-                    player.direction = dy > 0 ? 0 : 1;
-                }
-
-                player.animTimer += deltaTime * 10;
-                player.animFrame = Math.floor(player.animTimer) % 4;
-            } else {
-                player.animFrame = 0;
-                player.animTimer = 0;
-            }
-
-            if (dx !== 0 && dy !== 0) { dx *= 0.7071; dy *= 0.7071; }
-
-            let nextX = player.x + dx * player.speed * deltaTime;
-            let nextY = player.y + dy * player.speed * deltaTime;
-
-            const currentChunk = getOrCreateChunk(player.gridX, player.gridY);
-            
-            // Collisions
-            for (const rock of currentChunk.rocks) {
-                const dist = Math.hypot(nextX - rock.x, nextY - rock.y);
-                const minDist = player.radius + rock.radius;
-                if (dist < minDist) {
-                    const angle = Math.atan2(nextY - rock.y, nextX - rock.x);
-                    nextX = rock.x + Math.cos(angle) * minDist;
-                    nextY = rock.y + Math.sin(angle) * minDist;
-                }
-            }
-
-            for (const tree of currentChunk.trees) {
-                const dist = Math.hypot(nextX - tree.x, nextY - tree.y);
-                const minDist = player.radius + tree.trunkRadius;
-                if (dist < minDist) {
-                    const angle = Math.atan2(nextY - tree.y, nextX - tree.x);
-                    nextX = tree.x + Math.cos(angle) * minDist;
-                    nextY = tree.y + Math.sin(angle) * minDist;
-                }
-            }
-
-            player.x = nextX;
-            player.y = nextY;
-
-            // Screen Chunk Transitions
-            if (player.x > canvas.width) { player.gridX++; player.x = player.radius + 2; }
-            else if (player.x < 0) { player.gridX--; player.x = canvas.width - player.radius - 2; }
-            
-            if (player.y < 0) { player.gridY++; player.y = canvas.height - player.radius - 2; }
-            else if (player.y > canvas.height) { player.gridY--; player.y = player.radius + 2; }
-
-            sectorEl.textContent = `X: ${player.gridX}, Y: ${player.gridY}`;
-        }
-
-        function drawPlayerSprite() {
-            const frameX = player.animFrame * 16;
-            const frameY = player.direction * 16;
-            
-            ctx.drawImage(
-                playerSpriteCanvas,
-                frameX, frameY, 16, 16,
-                player.x - 20, player.y - 22, 40, 40
-            );
-
-            // Draw Sword Attack Animation
-            if (player.isAttacking) {
-                ctx.strokeStyle = '#f1c40f';
-                ctx.lineWidth = 4;
-                ctx.beginPath();
-                ctx.arc(player.x, player.y, 35, 0, Math.PI * 2);
-                ctx.stroke();
-            }
-        }
-
-        let lastTime = performance.now();
-        function gameLoop(currentTime) {
-            const deltaTime = (currentTime - lastTime) / 1000;
-            lastTime = currentTime;
-
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            updatePlayer(deltaTime);
-            checkHeldCacheTimer(deltaTime);
-
-            const chunk = getOrCreateChunk(player.gridX, player.gridY);
-
-            chunk.bushes.forEach(b => b.draw());
-            chunk.rocks.forEach(r => r.draw());
-
-            activeNearbyBush = null;
-            let closestDist = Infinity;
-            const rect = canvas.getBoundingClientRect();
-
-            chunk.bushes.forEach(bush => {
-                const dist = Math.hypot(player.x - bush.x, player.y - bush.y);
-                if (dist < INTERACTION_DISTANCE && dist < closestDist) {
-                    closestDist = dist;
-                    activeNearbyBush = bush;
-                }
-            });
-
-            if (activeNearbyBush) {
-                const screenX = rect.left + (activeNearbyBush.x * (rect.width / canvas.width));
-                const screenY = rect.top + ((activeNearbyBush.y - 35) * (rect.height / canvas.height));
-
-                mobileBushBtn.style.left = `${screenX}px`;
-                mobileBushBtn.style.top = `${screenY}px`;
-                mobileBushBtn.style.display = 'block';
-                mobileBushBtn.textContent = isMobile ? "SEARCH" : "SEARCH [E]";
-            } else {
-                mobileBushBtn.style.display = 'none';
-            }
-
-            chunk.monsters.forEach(m => {
-                m.update(deltaTime);
-                m.draw();
-            });
-
-            drawPlayerSprite();
-
-            chunk.trees.forEach(t => t.drawCanopy());
-
-            requestAnimationFrame(gameLoop);
-        }
-
-        updateHotbarUI();
-        requestAnimationFrame(gameLoop);
-    </script>
-</body>
-</html>
+    }
+
+    player.x = nextX;
+    player.y = nextY;
+
+    // Screen Chunk Transitions
+    if (player.x > canvas.width) { player.gridX++; player.x = player.radius + 2; }
+    else if (player.x < 0) { player.gridX--; player.x = canvas.width - player.radius - 2; }
+    
+    if (player.y < 0) { player.gridY++; player.y = canvas.height - player.radius - 2; }
+    else if (player.y > canvas.height) { player.gridY--; player.y = player.radius + 2; }
+
+    sectorEl.textContent = `X: ${player.gridX}, Y: ${player.gridY}`;
+}
+
+function drawPlayerSprite() {
+    const dirKey = DIRECTION_KEYS[player.direction]; // 'down', 'up', 'left', or 'right'
+    const spriteImg = playerSprites[dirKey][player.animFrame]; // Select frame 0, 1, or 2
+
+    if (spriteImg && spriteImg.complete && spriteImg.naturalWidth !== 0) {
+        ctx.drawImage(
+            spriteImg,
+            player.x - 20, player.y - 22, 40, 40
+        );
+    } else {
+        // Fallback circle if image is still loading
+        ctx.fillStyle = '#2ecc71';
+        ctx.beginPath();
+        ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    if (player.isAttacking) {
+        ctx.strokeStyle = '#f1c40f';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.arc(player.x, player.y, 35, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+}
