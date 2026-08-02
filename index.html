@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Cache Hunter - Complete Update</title>
+    <title>Cache Hunter</title>
     <style>
         * {
             box-sizing: border-box;
@@ -54,7 +54,6 @@
             color: #f1c40f;
         }
         
-        /* Hotbar Inventory */
         #hotbar {
             position: absolute;
             bottom: 15px;
@@ -101,7 +100,6 @@
             margin-top: 4px;
         }
 
-        /* Mobile Bush Action Button */
         #mobile-bush-btn {
             display: none;
             position: absolute;
@@ -119,7 +117,6 @@
             cursor: pointer;
         }
 
-        /* Cache Modal Popup */
         #cache-modal {
             display: none;
             position: absolute;
@@ -159,7 +156,6 @@
             background: #e74c3c;
         }
 
-        /* Steal Warning Banner */
         #steal-warning {
             display: none;
             position: absolute;
@@ -197,7 +193,6 @@
 
         <button id="mobile-bush-btn">SEARCH [E]</button>
 
-        <!-- 5-Slot Inventory Hotbar -->
         <div id="hotbar">
             <div class="slot selected" onclick="selectSlot(0)">
                 <span class="slot-num">1</span>
@@ -209,7 +204,6 @@
             <div class="slot" onclick="selectSlot(4)"><span class="slot-num">5</span><span class="item-icon"></span></div>
         </div>
 
-        <!-- Cache Interaction Modal -->
         <div id="cache-modal">
             <h3 id="modal-title">Cache Found!</h3>
             <div id="modal-actions"></div>
@@ -218,6 +212,26 @@
     </div>
 
     <script>
+        // ==========================================
+        // 🖼️ IMAGE CONFIGURATION
+        // ==========================================
+        const GAME_SPRITES = {
+            rockSheet: 'Rock1.jpg',      
+            pineTreeSheet: 'Tree1.jpg',  
+            leafyTreeSheet: 'Tree1.jpg', 
+            bushImage: 'Bush1.jpg'       
+        };
+        // ==========================================
+
+        // Image Asset Loader Engine
+        const images = {};
+        for (const [key, path] of Object.entries(GAME_SPRITES)) {
+            if (path && path.trim() !== '') {
+                images[key] = new Image();
+                images[key].src = path;
+            }
+        }
+
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const scoreEl = document.getElementById('score');
@@ -232,7 +246,6 @@
         const isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
         const INTERACTION_DISTANCE = 55;
 
-        // Player State
         const player = {
             gridX: 0,
             gridY: 0,
@@ -243,7 +256,6 @@
             color: '#3498db'
         };
 
-        // Inventory System
         const inventory = [
             { name: "Wooden Sword", type: "weapon", icon: "🗡️" },
             null, null, null, null
@@ -267,9 +279,7 @@
             updateHotbarUI();
         }
 
-        // Steal Warning Mechanics
         let activeHeldCacheTime = 0;
-        let isHoldingCache = false;
 
         function checkHeldCacheTimer(deltaTime) {
             const holdsCache = inventory.some(item => item && item.type === 'cache');
@@ -284,7 +294,6 @@
             }
         }
 
-        // Joystick Controls
         let joystick = {
             active: false, touchId: null,
             startX: 0, startY: 0,
@@ -298,7 +307,6 @@
         let cachesFound = 0;
         let activeNearbyBush = null;
 
-        // Entities
         class Bush {
             constructor(x, y) {
                 this.x = x;
@@ -319,11 +327,16 @@
             }
 
             draw() {
-                ctx.fillStyle = this.signed ? '#27ae60' : '#2b752f';
-                for (const leaf of this.leaves) {
-                    ctx.beginPath();
-                    ctx.arc(this.x + leaf.dx, this.y + leaf.dy, leaf.r, 0, Math.PI * 2);
-                    ctx.fill();
+                const img = images.bushImage;
+                if (img && img.complete && img.naturalWidth !== 0) {
+                    ctx.drawImage(img, this.x - 30, this.y - 30, 60, 60);
+                } else {
+                    ctx.fillStyle = this.signed ? '#27ae60' : '#2b752f';
+                    for (const leaf of this.leaves) {
+                        ctx.beginPath();
+                        ctx.arc(this.x + leaf.dx, this.y + leaf.dy, leaf.r, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
                 }
 
                 if (this.signed) {
@@ -338,13 +351,19 @@
         class Rock {
             constructor(x, y) {
                 this.x = x; this.y = y;
-                this.radius = 20 + Math.random() * 12;
+                this.radius = 24;
             }
+
             draw() {
-                ctx.fillStyle = '#7f8c8d';
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-                ctx.fill();
+                const img = images.rockSheet;
+                if (img && img.complete && img.naturalWidth !== 0) {
+                    ctx.drawImage(img, this.x - 30, this.y - 25, 60, 50);
+                } else {
+                    ctx.fillStyle = '#7f8c8d';
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                }
             }
         }
 
@@ -352,19 +371,23 @@
             constructor(x, y) {
                 this.x = x; this.y = y;
                 this.trunkRadius = 14;
-                this.canopyRadius = 45 + Math.random() * 10;
+                this.isPine = Math.random() < 0.5;
             }
+
             drawTrunk() {
-                ctx.fillStyle = '#5d4037';
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.trunkRadius, 0, Math.PI * 2);
-                ctx.fill();
+                // Ground collision reference
             }
+
             drawCanopy() {
-                ctx.fillStyle = 'rgba(46, 125, 50, 0.85)';
-                ctx.beginPath();
-                ctx.arc(this.x, this.y - 12, this.canopyRadius, 0, Math.PI * 2);
-                ctx.fill();
+                const img = images.pineTreeSheet;
+                if (img && img.complete && img.naturalWidth !== 0) {
+                    ctx.drawImage(img, this.x - 40, this.y - 80, 80, 95);
+                } else {
+                    ctx.fillStyle = 'rgba(46, 125, 50, 0.85)';
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y - 12, 40, 0, Math.PI * 2);
+                    ctx.fill();
+                }
             }
         }
 
@@ -391,7 +414,6 @@
             }
 
             draw() {
-                // Red Exclamation Alert
                 if (this.isChasing) {
                     ctx.fillStyle = '#e74c3c';
                     ctx.font = 'bold 22px Arial';
@@ -399,7 +421,6 @@
                     ctx.fillText('!', this.x, this.y - 24);
                 }
 
-                // Monster Body (Matches player with red outline)
                 ctx.strokeStyle = '#e74c3c';
                 ctx.lineWidth = 3;
                 ctx.fillStyle = '#3498db';
@@ -416,7 +437,6 @@
             }
         }
 
-        // Chunk Manager
         function getOrCreateChunk(gx, gy) {
             const key = `${gx},${gy}`;
             if (worldMap[key]) return worldMap[key];
@@ -434,7 +454,6 @@
                 trees.push(new Tree(80 + Math.random() * 640, 80 + Math.random() * 440));
             }
 
-            // Monsters spawn outside starting area
             if (!isSpawn) {
                 const numMonsters = Math.floor(Math.random() * 2) + 1;
                 for (let i = 0; i < numMonsters; i++) {
@@ -450,17 +469,14 @@
 
         getOrCreateChunk(0, 0);
 
-        // Input & Key Listener Setup
         window.addEventListener('keydown', e => {
             keys[e.code] = true;
             keys[e.key.toLowerCase()] = true;
 
-            // PC Hotbar Selection Keys (1-5)
             if (['1', '2', '3', '4', '5'].includes(e.key)) {
                 selectSlot(parseInt(e.key) - 1);
             }
 
-            // Interact Key (E)
             if ((e.code === 'KeyE' || e.key.toLowerCase() === 'e') && activeNearbyBush) {
                 openCacheModal(activeNearbyBush);
             }
@@ -471,12 +487,10 @@
             keys[e.key.toLowerCase()] = false;
         });
 
-        // Touch Listeners for Mobile Joystick
         if (isMobile) {
             window.addEventListener('touchstart', e => {
                 for (let i = 0; i < e.changedTouches.length; i++) {
                     const touch = e.changedTouches[i];
-                    const rect = canvas.getBoundingClientRect();
                     if (touch.clientX < window.innerWidth / 2 && !joystick.active) {
                         joystick.active = true;
                         joystick.touchId = touch.identifier;
@@ -509,7 +523,6 @@
             if (activeNearbyBush) openCacheModal(activeNearbyBush);
         });
 
-        // Modal Logic for Cache Actions
         function openCacheModal(bush) {
             modalActions.innerHTML = "";
             const pcHint = (key) => isMobile ? "" : ` [Key ${key}]`;
@@ -517,7 +530,6 @@
             if (bush.hasCache && !bush.cacheTaken) {
                 modalTitle.textContent = "Cache Discovered!";
 
-                // Sign Cache Option
                 const signBtn = document.createElement('button');
                 signBtn.className = "modal-btn";
                 signBtn.textContent = `Sign Cache${pcHint('1')}`;
@@ -531,7 +543,6 @@
                 };
                 modalActions.appendChild(signBtn);
 
-                // Take Cache Option
                 const takeBtn = document.createElement('button');
                 takeBtn.className = "modal-btn";
                 takeBtn.textContent = `Take Cache${pcHint('2')}`;
@@ -548,7 +559,6 @@
                 };
                 modalActions.appendChild(takeBtn);
 
-                // Take Trackable Option
                 if (bush.hasTrackable && !bush.trackableTaken) {
                     const trackBtn = document.createElement('button');
                     trackBtn.className = "modal-btn";
@@ -570,7 +580,6 @@
                 modalTitle.textContent = "Empty Bush";
             }
 
-            // Put Back Cache Option
             const cacheSlotIndex = inventory.findIndex(item => item && item.type === 'cache');
             if (cacheSlotIndex !== -1) {
                 const putBackBtn = document.createElement('button');
@@ -593,7 +602,6 @@
             cacheModal.style.display = 'none';
         }
 
-        // Movement & Logic Updates
         function updatePlayer(deltaTime) {
             let dx = 0, dy = 0;
             if (keys['keyw'] || keys['arrowup']) dy -= 1;
@@ -616,7 +624,6 @@
             player.x += dx * player.speed * deltaTime;
             player.y += dy * player.speed * deltaTime;
 
-            // Seamless Wrapping Screen Transition
             if (player.x > canvas.width) { player.gridX++; player.x = player.radius + 2; }
             else if (player.x < 0) { player.gridX--; player.x = canvas.width - player.radius - 2; }
             
@@ -626,7 +633,6 @@
             sectorEl.textContent = `X: ${player.gridX}, Y: ${player.gridY}`;
         }
 
-        // Main Loop
         let lastTime = performance.now();
         function gameLoop(currentTime) {
             const deltaTime = (currentTime - lastTime) / 1000;
@@ -639,15 +645,11 @@
 
             const chunk = getOrCreateChunk(player.gridX, player.gridY);
 
-            // Ground & Object Rendering
             chunk.bushes.forEach(b => b.draw());
             chunk.rocks.forEach(r => r.draw());
-            chunk.trees.forEach(t => t.drawTrunk());
 
-            // Check Bush Proximity for UI Button
             activeNearbyBush = null;
             let closestDist = Infinity;
-
             const rect = canvas.getBoundingClientRect();
 
             chunk.bushes.forEach(bush => {
@@ -675,19 +677,16 @@
                 mobileBushBtn.style.display = 'none';
             }
 
-            // Update & Render Monsters
             chunk.monsters.forEach(m => {
                 m.update(deltaTime);
                 m.draw();
             });
 
-            // Player Rendering
             ctx.fillStyle = player.color;
             ctx.beginPath();
             ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
             ctx.fill();
 
-            // Render Equipped Sword
             if (inventory[selectedSlotIndex] && inventory[selectedSlotIndex].type === 'weapon') {
                 ctx.fillStyle = '#d5dbdb';
                 ctx.fillRect(player.x + 10, player.y - 15, 6, 20);
@@ -700,7 +699,6 @@
             ctx.arc(player.x, player.y, player.radius * 0.4, 0, Math.PI * 2);
             ctx.fill();
 
-            // Tree Tops (Overhead)
             chunk.trees.forEach(t => t.drawCanopy());
 
             requestAnimationFrame(gameLoop);
