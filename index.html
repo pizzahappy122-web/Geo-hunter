@@ -33,7 +33,7 @@
         canvas {
             display: block;
             background-color: #4d7a36;
-            image-rendering: pixelated; /* Crisp pixel art scaling */
+            image-rendering: pixelated;
         }
         #ui {
             position: absolute;
@@ -49,10 +49,25 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
             z-index: 10;
             display: flex;
+            align-items: center;
             gap: 15px;
         }
         .sector-tag {
             color: #f1c40f;
+        }
+
+        #quest-btn {
+            background: #8e44ad;
+            color: white;
+            border: 1px solid #9b59b6;
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        #quest-btn:hover {
+            background: #9b59b6;
         }
         
         #hotbar {
@@ -118,7 +133,8 @@
             cursor: pointer;
         }
 
-        #cache-modal {
+        /* Modal Styles */
+        .game-modal {
             display: none;
             position: absolute;
             top: 50%;
@@ -131,10 +147,10 @@
             text-align: center;
             z-index: 30;
             box-shadow: 0 0 20px rgba(0,0,0,0.8);
-            min-width: 260px;
+            min-width: 300px;
             pointer-events: auto;
         }
-        #cache-modal h3 {
+        .game-modal h3 {
             margin: 0 0 15px 0;
             color: #f1c40f;
         }
@@ -155,6 +171,40 @@
         }
         .modal-btn.warning {
             background: #e74c3c;
+        }
+
+        /* Quest Card Styling */
+        .quest-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+            text-align: left;
+        }
+        .quest-title {
+            font-weight: bold;
+            font-size: 14px;
+            color: #e67e22;
+        }
+        .quest-progress {
+            font-size: 13px;
+            margin: 6px 0;
+            color: #ccc;
+        }
+        .code-box {
+            font-family: monospace;
+            background: #000;
+            color: #2ecc71;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            display: inline-block;
+            margin-top: 4px;
+            letter-spacing: 1px;
+        }
+        .code-locked {
+            color: #7f8c8d;
         }
 
         #steal-warning {
@@ -178,6 +228,18 @@
             from { transform: translateX(-50%) scale(1); }
             to { transform: translateX(-50%) scale(1.05); }
         }
+
+        /* Sprite Viewer Overlay */
+        #sprite-viewer {
+            margin-top: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 8px 16px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
     </style>
 </head>
 <body>
@@ -187,7 +249,8 @@
         
         <div id="ui">
             <div>Screen: <span id="sector" class="sector-tag">X: 0, Y: 0</span></div>
-            <div>Caches Found: <span id="score">0</span> / <span id="total">0</span></div>
+            <div>Caches: <span id="score">0</span> / <span id="total">0</span></div>
+            <button id="quest-btn" onclick="openQuestModal()">QUESTS</button>
         </div>
 
         <div id="steal-warning">⚠️ DON'T STEAL CACHES! ⚠️</div>
@@ -205,17 +268,40 @@
             <div class="slot" onclick="selectSlot(4)"><span class="slot-num">5</span><span class="item-icon"></span></div>
         </div>
 
-        <div id="cache-modal">
+        <!-- Cache Modal -->
+        <div id="cache-modal" class="game-modal">
             <h3 id="modal-title">Cache Found!</h3>
             <div id="modal-actions"></div>
-            <button class="modal-btn warning" onclick="closeModal()">Close</button>
+            <button class="modal-btn warning" onclick="closeModal('cache-modal')">Close</button>
+        </div>
+
+        <!-- Quest Modal -->
+        <div id="quest-modal" class="game-modal">
+            <h3>📜 Active Quests</h3>
+            
+            <div class="quest-card">
+                <div class="quest-title">Quest 1: Master Cache Hunter</div>
+                <div class="quest-progress">Find 20 Caches (<span id="q1-count">0</span> / 20)</div>
+                <div>Code 1: <span id="q1-code" class="code-box code-locked">🔒 LOCKED</span></div>
+            </div>
+
+            <div class="quest-card">
+                <div class="quest-title">Quest 2: Monster Slayer</div>
+                <div class="quest-progress">Defeat 15 Enemies (<span id="q2-count">0</span> / 15)</div>
+                <div>Code 2: <span id="q2-code" class="code-box code-locked">🔒 LOCKED</span></div>
+            </div>
+
+            <button class="modal-btn warning" onclick="closeModal('quest-modal')">Close</button>
         </div>
     </div>
 
+    <!-- On-screen Sprite Preview -->
+    <div id="sprite-viewer">
+        <span style="font-size: 12px; color: #aaa; font-weight: bold;">Player Spritesheet (16x16):</span>
+        <canvas id="spritePreview" width="128" height="128" style="image-rendering: pixelated; background: #222; border: 1px solid #444; border-radius: 4px;"></canvas>
+    </div>
+
     <script>
-        // ==========================================
-        // 🖼️ IMAGE CONFIGURATION
-        // ==========================================
         const GAME_SPRITES = {
             rockSheet: 'Rock1.png',      
             pineTreeSheet: 'Tree1.png',  
@@ -231,79 +317,81 @@
             }
         }
 
-        // ==========================================
-        // 🎨 PROCEDURAL 16x16 PLAYER SPRITE GENERATOR
-        // ==========================================
+        // ========================================================
+        // 🎨 PROCEDURAL 16x16 HUMAN PLAYER (GREEN CLOTHES)
+        // ========================================================
         const playerSpriteCanvas = document.createElement('canvas');
-        playerSpriteCanvas.width = 64;  // 4 Frames horizontally (Idle, Walk1, Idle, Walk2)
-        playerSpriteCanvas.height = 64; // 4 Directions vertically (Down=0, Up=1, Left=2, Right=3)
+        playerSpriteCanvas.width = 64; playerSpriteCanvas.height = 64;
         const pCtx = playerSpriteCanvas.getContext('2d');
 
-        // Color Palette
+        // Human Palette (Green tunic, brown boots & belt, human skin/hair)
         const C = {
-            H: '#e0ac69', // Skin
-            S: '#c68642', // Skin shadow
-            B: '#2980b9', // Shirt blue
-            BD: '#1c5982',// Shirt shadow
-            P: '#34495e', // Pants dark
+            R: '#4a2e18', // Dark Hair
+            H: '#ffdbac', // Human Skin Tone
+            S: '#e0ac69', // Skin Shadow
+            G: '#27ae60', // Green Shirt / Tunic
+            D: '#1e8449', // Dark Green Shading
+            L: '#2ecc71', // Light Green Highlight
+            B: '#7f5217', // Belt / Brown Accent
+            P: '#34495e', // Dark Pants
+            K: '#5c3a21', // Leather Boots
             E: '#2c3e50', // Eyes
-            K: '#111111', // Boots
-            O: '#000000'  // Outline
+            O: '#1a1a1a'  // Dark Outline
         };
 
-        // Raw 16x16 Pixel Maps for Directions
+        // Pixel grids for Down, Up, and Side directions
         const rawFrames = {
             down: [
                 "....OOOOOOOO....",
-                "...OOHHHHHHOO...",
-                "..OOHHHHHHHHOO..",
+                "...OORRRRRROO...",
+                "..OORRRRRRRROO..",
                 "..OOHHEEHHEEOO..",
-                "..OOHHEEHHEEOO..",
-                "..OOHHHHHHHHOO..",
+                "..OOHHHSSHHHOO..",
                 "...OOSSSSSSOO...",
+                "..OOGGGGGGGGOO..",
+                ".OOGGGGGGGGGGOO.",
+                ".OOGGGLGGGGGGGO.",
+                ".OOGGGGGGGGGGOO.",
                 "..OOBBBBBBBBOO..",
-                ".OOBBBBBBBBBBOO.",
-                ".OOBBBBBBBBBBOO.",
-                ".OOBBBBBBBBBBOO.",
                 "..OO33333333OO..",
                 "..OO333..333OO..",
-                "..OO333..333OO..",
+                "..OOKKK..KKKOO..",
                 "..OOKKK..KKKOO..",
                 "...OOOO..OOOO..."
             ],
             up: [
                 "....OOOOOOOO....",
-                "...OOHHHHHHOO...",
-                "..OOHHHHHHHHOO..",
-                "..OOHHHHHHHHOO..",
-                "..OOHHHHHHHHOO..",
-                "..OOHHHHHHHHOO..",
-                "...OOSSSSSSOO...",
+                "...OORRRRRROO...",
+                "..OORRRRRRRROO..",
+                "..OORRRRRRRROO..",
+                "..OORRRRRRRROO..",
+                "...OORRRRRROO...",
+                "..OOGGGGGGGGOO..",
+                ".OOGGGGGGGGGGOO.",
+                ".OOGGGDDGGGGGOO.",
+                ".OOGGGGGGGGGGOO.",
                 "..OOBBBBBBBBOO..",
-                ".OOBBBBBBBBBBOO.",
-                ".OOBBBBBBBBBBOO.",
-                ".OOBBBBBBBBBBOO.",
                 "..OO33333333OO..",
                 "..OO333..333OO..",
-                "..OO333..333OO..",
+                "..OOKKK..KKKOO..",
                 "..OOKKK..KKKOO..",
                 "...OOOO..OOOO..."
             ],
             side: [
                 "....OOOOOOOO....",
-                "...OOHHHHHHOO...",
-                "..OOHHHHHHHHOO..",
-                "..OOHHEEHHHHHH..",
-                "..OOHHEEHHHHHH..",
-                "..OOHHHHHHHHOO..",
+                "...OORRRRRROO...",
+                "..OORRRRRRRROO..",
+                "..OORREEEHHHHH..",
+                "..OOHHHSSHHHOO..",
                 "...OOSSSSSSOO...",
+                "..OOGGGGGGGGOO..",
+                ".OOGGGGGGGGGGOO.",
+                ".OOGGGLGGGGGGGO.",
+                ".OOGGGGGGGGGGOO.",
                 "..OOBBBBBBBBOO..",
-                ".OOBBBBBBBBBBOO.",
-                ".OOBBBBBBBBBBOO.",
-                ".OOBBBBBBBBBBOO.",
                 "..OO33333333OO..",
                 "..OO333..333OO..",
-                "..OO333..333OO..",
+                "..OOKKK..KKKOO..",
                 "..OOKKK..KKKOO..",
                 "...OOOO..OOOO..."
             ]
@@ -320,13 +408,11 @@
 
             for (let y = 0; y < 16; y++) {
                 let row = map[y];
-                
-                // Animate Legs/Grit dynamically on frames 1 & 3
-                if (y >= 11) {
-                    if (legFrame === 1) { // Left leg step
-                        if (y === 14 || y === 15) row = row.substring(0, 2) + "K" + row.substring(3, 11) + "." + row.substring(12);
-                    } else if (legFrame === 3) { // Right leg step
-                        if (y === 14 || y === 15) row = row.substring(0, 5) + "." + row.substring(6, 13) + "K" + row.substring(14);
+                if (y >= 12) {
+                    if (legFrame === 1) { // Left step
+                        if (y >= 13) row = row.substring(0, 2) + "K" + row.substring(3, 11) + "." + row.substring(12);
+                    } else if (legFrame === 3) { // Right step
+                        if (y >= 13) row = row.substring(0, 5) + "." + row.substring(6, 13) + "K" + row.substring(14);
                     }
                 }
 
@@ -340,7 +426,6 @@
             pCtx.restore();
         }
 
-        // Render Spritesheet grid (Down, Up, Left, Right x 4 Animation Frames)
         const dirs = ['down', 'up', 'side', 'side'];
         for (let dirIdx = 0; dirIdx < 4; dirIdx++) {
             const isLeft = (dirIdx === 2);
@@ -350,9 +435,14 @@
             }
         }
 
-        // ==========================================
-        // 🎮 GAME SETUP
-        // ==========================================
+        // Render preview canvas below game
+        const prevCtx = document.getElementById('spritePreview').getContext('2d');
+        prevCtx.imageSmoothingEnabled = false;
+        prevCtx.drawImage(playerSpriteCanvas, 0, 0, 128, 128);
+
+        // ========================================================
+        // 🎮 GAME LOGIC
+        // ========================================================
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const scoreEl = document.getElementById('score');
@@ -360,12 +450,23 @@
         const sectorEl = document.getElementById('sector');
         const mobileBushBtn = document.getElementById('mobile-bush-btn');
         const cacheModal = document.getElementById('cache-modal');
+        const questModal = document.getElementById('quest-modal');
         const modalActions = document.getElementById('modal-actions');
         const modalTitle = document.getElementById('modal-title');
         const stealWarning = document.getElementById('steal-warning');
 
         const isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
         const INTERACTION_DISTANCE = 55;
+
+        // Quests State
+        const questState = {
+            cachesFound: 0,
+            cachesTarget: 20,
+            code1: "CACHE-9921",
+            monstersDefeated: 0,
+            monstersTarget: 15,
+            code2: "SLAYER-7740"
+        };
 
         const player = {
             gridX: 0,
@@ -374,11 +475,12 @@
             y: canvas.height / 2,
             radius: 12,
             speed: 220,
-            // Animation States:
-            direction: 0, // 0: Down, 1: Up, 2: Left, 3: Right
+            direction: 0,
             animTimer: 0,
             animFrame: 0,
-            isMoving: false
+            isMoving: false,
+            isAttacking: false,
+            attackTimer: 0
         };
 
         const inventory = [
@@ -429,13 +531,11 @@
         const keys = {};
         const worldMap = {};
         let totalCachesDiscoveredInWorld = 0;
-        let cachesFound = 0;
         let activeNearbyBush = null;
 
         class Bush {
             constructor(x, y) {
-                this.x = x;
-                this.y = y;
+                this.x = x; this.y = y;
                 this.radius = 26;
                 this.hasCache = Math.random() < 0.5;
                 this.cacheTaken = false;
@@ -513,15 +613,16 @@
 
         class Monster {
             constructor(x, y) {
-                this.x = x;
-                this.y = y;
+                this.x = x; this.y = y;
                 this.radius = 14;
                 this.speed = 120;
                 this.detectionRange = 180;
                 this.isChasing = false;
+                this.alive = true;
             }
 
             update(deltaTime) {
+                if (!this.alive) return;
                 const dist = Math.hypot(player.x - this.x, player.y - this.y);
                 if (dist < this.detectionRange) {
                     this.isChasing = true;
@@ -534,6 +635,7 @@
             }
 
             draw() {
+                if (!this.alive) return;
                 if (this.isChasing) {
                     ctx.fillStyle = '#e74c3c';
                     ctx.font = 'bold 22px Arial';
@@ -589,6 +691,23 @@
 
         getOrCreateChunk(0, 0);
 
+        function triggerAttack() {
+            if (player.isAttacking) return;
+            player.isAttacking = true;
+            player.attackTimer = 0.25;
+
+            const chunk = getOrCreateChunk(player.gridX, player.gridY);
+            chunk.monsters.forEach(m => {
+                if (!m.alive) return;
+                const dist = Math.hypot(player.x - m.x, player.y - m.y);
+                if (dist < 48) {
+                    m.alive = false;
+                    questState.monstersDefeated++;
+                    updateQuestProgress();
+                }
+            });
+        }
+
         window.addEventListener('keydown', e => {
             keys[e.code] = true;
             keys[e.key.toLowerCase()] = true;
@@ -600,11 +719,19 @@
             if ((e.code === 'KeyE' || e.key.toLowerCase() === 'e') && activeNearbyBush) {
                 openCacheModal(activeNearbyBush);
             }
+
+            if (e.code === 'Space') {
+                triggerAttack();
+            }
         });
 
         window.addEventListener('keyup', e => {
             keys[e.code] = false;
             keys[e.key.toLowerCase()] = false;
+        });
+
+        canvas.addEventListener('click', () => {
+            triggerAttack();
         });
 
         if (isMobile) {
@@ -643,6 +770,28 @@
             if (activeNearbyBush) openCacheModal(activeNearbyBush);
         });
 
+        function updateQuestProgress() {
+            document.getElementById('q1-count').textContent = questState.cachesFound;
+            document.getElementById('q2-count').textContent = questState.monstersDefeated;
+
+            const q1Code = document.getElementById('q1-code');
+            if (questState.cachesFound >= questState.cachesTarget) {
+                q1Code.textContent = questState.code1;
+                q1Code.classList.remove('code-locked');
+            }
+
+            const q2Code = document.getElementById('q2-code');
+            if (questState.monstersDefeated >= questState.monstersTarget) {
+                q2Code.textContent = questState.code2;
+                q2Code.classList.remove('code-locked');
+            }
+        }
+
+        function openQuestModal() {
+            updateQuestProgress();
+            questModal.style.display = 'block';
+        }
+
         function openCacheModal(bush) {
             modalActions.innerHTML = "";
             const pcHint = (key) => isMobile ? "" : ` [Key ${key}]`;
@@ -656,10 +805,11 @@
                 signBtn.onclick = () => {
                     if (!bush.signed) {
                         bush.signed = true;
-                        cachesFound++;
-                        scoreEl.textContent = cachesFound;
+                        questState.cachesFound++;
+                        scoreEl.textContent = questState.cachesFound;
+                        updateQuestProgress();
                     }
-                    closeModal();
+                    closeModal('cache-modal');
                 };
                 modalActions.appendChild(signBtn);
 
@@ -675,7 +825,7 @@
                     } else {
                         alert("Inventory Full!");
                     }
-                    closeModal();
+                    closeModal('cache-modal');
                 };
                 modalActions.appendChild(takeBtn);
 
@@ -692,7 +842,7 @@
                         } else {
                             alert("Inventory Full!");
                         }
-                        closeModal();
+                        closeModal('cache-modal');
                     };
                     modalActions.appendChild(trackBtn);
                 }
@@ -710,7 +860,7 @@
                     bush.hasCache = true;
                     bush.cacheTaken = false;
                     updateHotbarUI();
-                    closeModal();
+                    closeModal('cache-modal');
                 };
                 modalActions.appendChild(putBackBtn);
             }
@@ -718,11 +868,16 @@
             cacheModal.style.display = 'block';
         }
 
-        function closeModal() {
-            cacheModal.style.display = 'none';
+        function closeModal(id) {
+            document.getElementById(id).style.display = 'none';
         }
 
         function updatePlayer(deltaTime) {
+            if (player.isAttacking) {
+                player.attackTimer -= deltaTime;
+                if (player.attackTimer <= 0) player.isAttacking = false;
+            }
+
             let dx = 0, dy = 0;
             if (keys['keyw'] || keys['arrowup']) dy -= 1;
             if (keys['keys'] || keys['arrowdown']) dy += 1;
@@ -742,18 +897,16 @@
             player.isMoving = (dx !== 0 || dy !== 0);
 
             if (player.isMoving) {
-                // Update direction based on primary vector axis
                 if (Math.abs(dx) > Math.abs(dy)) {
-                    player.direction = dx > 0 ? 3 : 2; // Right : Left
+                    player.direction = dx > 0 ? 3 : 2;
                 } else {
-                    player.direction = dy > 0 ? 0 : 1; // Down : Up
+                    player.direction = dy > 0 ? 0 : 1;
                 }
 
-                // Animation Frame Cycling
-                player.animTimer += deltaTime * 10; // Speed of step cycle
+                player.animTimer += deltaTime * 10;
                 player.animFrame = Math.floor(player.animTimer) % 4;
             } else {
-                player.animFrame = 0; // Idle frame
+                player.animFrame = 0;
                 player.animTimer = 0;
             }
 
@@ -764,7 +917,7 @@
 
             const currentChunk = getOrCreateChunk(player.gridX, player.gridY);
             
-            // Rock Collisions
+            // Collisions
             for (const rock of currentChunk.rocks) {
                 const dist = Math.hypot(nextX - rock.x, nextY - rock.y);
                 const minDist = player.radius + rock.radius;
@@ -775,7 +928,6 @@
                 }
             }
 
-            // Tree Trunk Collisions
             for (const tree of currentChunk.trees) {
                 const dist = Math.hypot(nextX - tree.x, nextY - tree.y);
                 const minDist = player.radius + tree.trunkRadius;
@@ -789,7 +941,7 @@
             player.x = nextX;
             player.y = nextY;
 
-            // Chunk Transitions
+            // Screen Chunk Transitions
             if (player.x > canvas.width) { player.gridX++; player.x = player.radius + 2; }
             else if (player.x < 0) { player.gridX--; player.x = canvas.width - player.radius - 2; }
             
@@ -803,12 +955,20 @@
             const frameX = player.animFrame * 16;
             const frameY = player.direction * 16;
             
-            // Render 16x16 sprite scaled 2.5x (40x40 px display size) centered on collision center
             ctx.drawImage(
                 playerSpriteCanvas,
                 frameX, frameY, 16, 16,
                 player.x - 20, player.y - 22, 40, 40
             );
+
+            // Draw Sword Attack Animation
+            if (player.isAttacking) {
+                ctx.strokeStyle = '#f1c40f';
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.arc(player.x, player.y, 35, 0, Math.PI * 2);
+                ctx.stroke();
+            }
         }
 
         let lastTime = performance.now();
@@ -823,7 +983,6 @@
 
             const chunk = getOrCreateChunk(player.gridX, player.gridY);
 
-            // Ground layer rendering
             chunk.bushes.forEach(b => b.draw());
             chunk.rocks.forEach(r => r.draw());
 
@@ -846,12 +1005,7 @@
                 mobileBushBtn.style.left = `${screenX}px`;
                 mobileBushBtn.style.top = `${screenY}px`;
                 mobileBushBtn.style.display = 'block';
-
-                if (!isMobile) {
-                    mobileBushBtn.textContent = "SEARCH [E]";
-                } else {
-                    mobileBushBtn.textContent = "SEARCH";
-                }
+                mobileBushBtn.textContent = isMobile ? "SEARCH" : "SEARCH [E]";
             } else {
                 mobileBushBtn.style.display = 'none';
             }
@@ -861,10 +1015,8 @@
                 m.draw();
             });
 
-            // Player rendering
             drawPlayerSprite();
 
-            // Overhead canopy rendering (walkable behind/under tree tops)
             chunk.trees.forEach(t => t.drawCanopy());
 
             requestAnimationFrame(gameLoop);
