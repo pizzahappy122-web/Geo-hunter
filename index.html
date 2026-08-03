@@ -55,6 +55,10 @@
         .sector-tag {
             color: #f1c40f;
         }
+        .hearts-display {
+            font-size: 18px;
+            letter-spacing: 2px;
+        }
 
         #quest-btn {
             background: #8e44ad;
@@ -239,6 +243,15 @@
             filter: drop-shadow(0 0 10px #f1c40f);
         }
 
+        /* Game Over Modal */
+        #game-over-modal {
+            border-color: #e74c3c;
+        }
+        #game-over-modal h3 {
+            color: #e74c3c;
+            font-size: 28px;
+        }
+
         /* Quest Card Styling */
         .quest-card {
             background: rgba(255, 255, 255, 0.05);
@@ -302,6 +315,7 @@
         <canvas id="gameCanvas" width="800" height="600"></canvas>
         
         <div id="ui">
+            <div id="hearts-container" class="hearts-display">❤️❤️❤️</div>
             <div>Screen: <span id="sector" class="sector-tag">X: 0, Y: 0</span></div>
             <div>Caches: <span id="score">0</span> / <span id="total">0</span></div>
             <button id="quest-btn" onclick="openQuestModal()">QUESTS</button>
@@ -351,12 +365,19 @@
             </div>
 
             <div class="quest-card">
-                <div class="quest-title">Quest 2: Monster Slayer</div>
-                <div class="quest-progress">Defeat 15 Enemies (<span id="q2-count">0</span> / 15)</div>
+                <div class="quest-title">Quest 2: Trackable Relocator</div>
+                <div class="quest-progress">Move 5 Trackables to new Caches (<span id="q2-count">0</span> / 5)</div>
                 <div>Code 2: <span id="q2-code" class="code-box code-locked">🔒 LOCKED</span></div>
             </div>
 
             <button class="modal-btn warning" onclick="closeModal('quest-modal')">Close</button>
+        </div>
+
+        <!-- Game Over Modal -->
+        <div id="game-over-modal" class="game-modal">
+            <h3>💀 GAME OVER</h3>
+            <p style="color: #ccc; font-size: 14px;">You ran out of health!</p>
+            <button class="modal-btn warning" onclick="respawnPlayer()">RESPAWN & RESET WORLD</button>
         </div>
     </div>
 
@@ -423,6 +444,22 @@
 
                 osc1.start(now);
                 osc1.stop(now + 0.3);
+
+            } else if (type === 'damage') {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(180, now);
+                osc.frequency.exponentialRampToValueAtTime(40, now + 0.3);
+
+                gain.gain.setValueAtTime(0.5, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+
+                osc.start(now);
+                osc.stop(now + 0.3);
             }
         }
 
@@ -448,14 +485,12 @@
             run: []
         };
 
-        // Load Idle Sprites: idle1.png through idle6.png
         for (let i = 1; i <= 6; i++) {
             const img = new Image();
             img.src = `idle${i}.png`;
             playerSprites.idle.push(img);
         }
 
-        // Load Run Sprites: run1.png through run6.png
         for (let i = 1; i <= 6; i++) {
             const img = new Image();
             img.src = `run${i}.png`;
@@ -468,11 +503,13 @@
         const scoreEl = document.getElementById('score');
         const totalEl = document.getElementById('total');
         const sectorEl = document.getElementById('sector');
+        const heartsContainer = document.getElementById('hearts-container');
         const mobileBushBtn = document.getElementById('mobile-bush-btn');
         const mobileSwordBtn = document.getElementById('mobile-sword-btn');
         const cacheModal = document.getElementById('cache-modal');
         const trackableOverlay = document.getElementById('trackable-overlay');
         const questModal = document.getElementById('quest-modal');
+        const gameOverModal = document.getElementById('game-over-modal');
         const modalActions = document.getElementById('modal-actions');
         const modalTitle = document.getElementById('modal-title');
         const stealWarning = document.getElementById('steal-warning');
@@ -489,14 +526,14 @@
             cachesFound: 0,
             cachesTarget: 20,
             code1: "CACHE-9921",
-            monstersDefeated: 0,
-            monstersTarget: 15,
+            trackablesRelocated: 0,
+            trackablesTarget: 5,
             code2: "SLAYER-7740"
         };
 
         const ATTACK_DURATION = 0.25;
 
-        const player = {
+        let player = {
             gridX: 0,
             gridY: 0,
             x: canvas.width / 2,
@@ -508,14 +545,25 @@
             animFrame: 0,
             isMoving: false,
             isAttacking: false,
-            attackTimer: 0
+            attackTimer: 0,
+            health: 3,
+            maxHealth: 3,
+            invulnerableTimer: 0
         };
 
-        const inventory = [
+        let inventory = [
             { name: "Wooden Sword", type: "weapon", icon: "🗡️" },
             null, null, null, null
         ];
         let selectedSlotIndex = 0;
+
+        function updateHeartsUI() {
+            let heartsStr = "";
+            for (let i = 0; i < player.maxHealth; i++) {
+                heartsStr += (i < player.health) ? "❤️" : "🖤";
+            }
+            heartsContainer.textContent = heartsStr;
+        }
 
         function updateHotbarUI() {
             const slots = document.querySelectorAll('.slot');
@@ -557,19 +605,22 @@
         };
 
         const keys = {};
-        const worldMap = {};
+        let worldMap = {};
         let totalCachesDiscoveredInWorld = 0;
         let activeNearbyBush = null;
         let leavesParticles = [];
+        let bushCounter = 0;
 
         class Bush {
             constructor(x, y) {
+                this.id = bushCounter++;
                 this.x = x; this.y = y;
                 this.radius = 26;
                 this.hasCache = Math.random() < 0.5;
                 this.cacheTaken = false;
                 this.hasTrackable = Math.random() < 0.4;
                 this.trackableTaken = false;
+                this.originalTrackableSourceId = this.id;
                 this.signed = false;
                 this.rustleTimer = 0;
                 this.leaves = [
@@ -676,7 +727,7 @@
             }
 
             update(deltaTime) {
-                if (!this.alive) return;
+                if (!this.alive || player.health <= 0) return;
                 const dist = Math.hypot(player.x - this.x, player.y - this.y);
                 if (dist < this.detectionRange) {
                     this.isChasing = true;
@@ -685,6 +736,40 @@
                     this.y += Math.sin(angle) * this.speed * deltaTime;
                 } else {
                     this.isChasing = false;
+                }
+
+                // Check collision with player
+                if (dist < this.radius + player.radius) {
+                    // Calculate if monster is touching the swinging sword arc instead of body
+                    let touchingSword = false;
+
+                    if (player.isAttacking) {
+                        const progress = 1 - (player.attackTimer / ATTACK_DURATION);
+                        const startAngle = -Math.PI / 2;
+                        const endAngle = Math.PI / 2;
+                        const swordAngle = startAngle + (progress * (endAngle - startAngle));
+                        
+                        // Facing Left modifies sword angle space
+                        const dir = player.facingLeft ? -1 : 1;
+                        const swordTipX = player.x + Math.cos(swordAngle) * 42 * dir;
+                        const swordTipY = player.y + Math.sin(swordAngle) * 42;
+
+                        const distToSword = Math.hypot(this.x - swordTipX, this.y - swordTipY);
+                        if (distToSword < this.radius + 20) {
+                            touchingSword = true;
+                        }
+                    }
+
+                    if (!touchingSword && player.invulnerableTimer <= 0) {
+                        player.health--;
+                        player.invulnerableTimer = 1.0; // 1s Cooldown
+                        playSound('damage');
+                        updateHeartsUI();
+
+                        if (player.health <= 0) {
+                            gameOverModal.style.display = 'block';
+                        }
+                    }
                 }
             }
 
@@ -745,7 +830,42 @@
 
         getOrCreateChunk(0, 0);
 
+        function respawnPlayer() {
+            // Reset player properties
+            player.health = player.maxHealth;
+            player.invulnerableTimer = 0;
+            player.gridX = 0;
+            player.gridY = 0;
+            player.x = canvas.width / 2;
+            player.y = canvas.height / 2;
+            player.isAttacking = false;
+
+            // Reset quests & inventory
+            questState.cachesFound = 0;
+            questState.trackablesRelocated = 0;
+            inventory = [
+                { name: "Wooden Sword", type: "weapon", icon: "🗡️" },
+                null, null, null, null
+            ];
+            selectedSlotIndex = 0;
+
+            // Reset World Map state
+            worldMap = {};
+            totalCachesDiscoveredInWorld = 0;
+            bushCounter = 0;
+            getOrCreateChunk(0, 0);
+
+            // Update UI elements
+            scoreEl.textContent = 0;
+            updateHeartsUI();
+            updateHotbarUI();
+            updateQuestProgress();
+
+            gameOverModal.style.display = 'none';
+        }
+
         function triggerAttack() {
+            if (player.health <= 0) return;
             const selectedItem = inventory[selectedSlotIndex];
             if (!selectedItem || selectedItem.type !== "weapon") return;
 
@@ -762,8 +882,6 @@
                 if (dist < 55) {
                     m.alive = false;
                     playSound('hit');
-                    questState.monstersDefeated++;
-                    updateQuestProgress();
                 }
             });
         }
@@ -840,18 +958,24 @@
 
         function updateQuestProgress() {
             document.getElementById('q1-count').textContent = questState.cachesFound;
-            document.getElementById('q2-count').textContent = questState.monstersDefeated;
+            document.getElementById('q2-count').textContent = questState.trackablesRelocated;
 
             const q1Code = document.getElementById('q1-code');
             if (questState.cachesFound >= questState.cachesTarget) {
                 q1Code.textContent = questState.code1;
                 q1Code.classList.remove('code-locked');
+            } else {
+                q1Code.textContent = "🔒 LOCKED";
+                q1Code.classList.add('code-locked');
             }
 
             const q2Code = document.getElementById('q2-code');
-            if (questState.monstersDefeated >= questState.monstersTarget) {
+            if (questState.trackablesRelocated >= questState.trackablesTarget) {
                 q2Code.textContent = questState.code2;
                 q2Code.classList.remove('code-locked');
+            } else {
+                q2Code.textContent = "🔒 LOCKED";
+                q2Code.classList.add('code-locked');
             }
         }
 
@@ -907,6 +1031,33 @@
                     };
                     modalActions.appendChild(trackBtn);
                 }
+
+                // Put Trackable in this cache
+                const trackableSlotIndex = inventory.findIndex(item => item && item.type === 'trackable');
+                if (trackableSlotIndex !== -1) {
+                    const dropTrackBtn = document.createElement('button');
+                    dropTrackBtn.className = "modal-btn";
+                    dropTrackBtn.textContent = `Drop Trackable Here${pcHint('4')}`;
+                    dropTrackBtn.onclick = () => {
+                        const trackableItem = inventory[trackableSlotIndex];
+                        inventory[trackableSlotIndex] = null;
+                        
+                        // Verify if it is placed in a different cache than where it originated
+                        if (trackableItem.sourceBushId !== bush.id) {
+                            questState.trackablesRelocated++;
+                            updateQuestProgress();
+                        }
+
+                        bush.hasTrackable = true;
+                        bush.trackableTaken = false;
+                        bush.originalTrackableSourceId = trackableItem.sourceBushId;
+
+                        updateHotbarUI();
+                        closeModal('cache-modal');
+                    };
+                    modalActions.appendChild(dropTrackBtn);
+                }
+
             } else {
                 modalTitle.textContent = "Empty Bush";
             }
@@ -915,7 +1066,7 @@
             if (cacheSlotIndex !== -1) {
                 const putBackBtn = document.createElement('button');
                 putBackBtn.className = "modal-btn";
-                putBackBtn.textContent = `Put Back Cache${pcHint('4')}`;
+                putBackBtn.textContent = `Put Back Cache`;
                 putBackBtn.onclick = () => {
                     inventory[cacheSlotIndex] = null;
                     bush.hasCache = true;
@@ -933,7 +1084,12 @@
             if (!activeNearbyBush) return;
             const emptyIndex = inventory.findIndex(slot => slot === null);
             if (emptyIndex !== -1) {
-                inventory[emptyIndex] = { name: "Trackable", type: "trackable", icon: "🏷️" };
+                inventory[emptyIndex] = { 
+                    name: "Trackable", 
+                    type: "trackable", 
+                    icon: "🏷️",
+                    sourceBushId: activeNearbyBush.originalTrackableSourceId 
+                };
                 activeNearbyBush.trackableTaken = true;
                 playSound('coin');
                 updateHotbarUI();
@@ -948,6 +1104,12 @@
         }
 
         function updatePlayer(deltaTime) {
+            if (player.health <= 0) return;
+
+            if (player.invulnerableTimer > 0) {
+                player.invulnerableTimer -= deltaTime;
+            }
+
             if (player.isAttacking) {
                 player.attackTimer -= deltaTime;
                 if (player.attackTimer <= 0) player.isAttacking = false;
@@ -971,23 +1133,19 @@
 
             player.isMoving = (dx !== 0 || dy !== 0);
 
-            // Update Direction Flip (Left vs Right)
             if (dx < 0) {
                 player.facingLeft = true;
             } else if (dx > 0) {
                 player.facingLeft = false;
             }
 
-            // Animate Frame Loops
             player.animTimer += deltaTime;
             if (player.isMoving) {
-                // Run cycle: 6 frames @ 0.1s speed per frame
                 if (player.animTimer >= 0.1) {
                     player.animTimer = 0;
                     player.animFrame = (player.animFrame + 1) % playerSprites.run.length;
                 }
             } else {
-                // Idle cycle: 6 frames @ 0.15s speed per frame
                 if (player.animTimer >= 0.15) {
                     player.animTimer = 0;
                     player.animFrame = (player.animFrame + 1) % playerSprites.idle.length;
@@ -1034,7 +1192,13 @@
         }
 
         function drawPlayerSprite() {
-            // Pick active animation array
+            if (player.health <= 0) return;
+
+            // Invulnerability flash effect
+            if (player.invulnerableTimer > 0 && Math.floor(performance.now() / 100) % 2 === 0) {
+                return;
+            }
+
             const currentArray = player.isMoving ? playerSprites.run : playerSprites.idle;
             const frameIndex = player.animFrame % currentArray.length;
             const spriteImg = currentArray[frameIndex];
@@ -1042,7 +1206,6 @@
             ctx.save();
             ctx.translate(player.x, player.y);
 
-            // Flip horizontally if facing left
             if (player.facingLeft) {
                 ctx.scale(-1, 1);
             }
@@ -1062,15 +1225,13 @@
             if (player.isAttacking) {
                 const progress = 1 - (player.attackTimer / ATTACK_DURATION);
 
-                // Standard Top-to-Bottom swing geometry
-                const startAngle = -Math.PI / 2; // Starts pointing up (-90deg)
-                const endAngle = Math.PI / 2;    // Ends pointing down (+90deg)
+                const startAngle = -Math.PI / 2;
+                const endAngle = Math.PI / 2;
                 const currentAngle = startAngle + (progress * (endAngle - startAngle));
 
                 ctx.save();
                 ctx.translate(player.x, player.y);
 
-                // Adjust coordinate space for left/right facing so top-to-bottom swing remains uniform
                 if (player.facingLeft) {
                     ctx.scale(-1, 1);
                 }
@@ -1089,10 +1250,10 @@
                 ctx.strokeStyle = "#ffffff";
                 ctx.stroke();
 
-                // Position & Rotate Sword Icon (Held correctly by the hilt at the tip of the arc)
+                // Position & Rotate Sword Icon
                 ctx.rotate(currentAngle);
-                ctx.translate(32, 0); // Extend out to radius
-                ctx.rotate(Math.PI / 4 + Math.PI / 8); // Offset angle so blade points outward from hilt
+                ctx.translate(32, 0);
+                ctx.rotate(Math.PI / 4 + Math.PI / 8 + Math.PI);
 
                 ctx.font = '26px sans-serif';
                 ctx.textAlign = 'center';
@@ -1137,13 +1298,15 @@
             let closestDist = Infinity;
             const rect = canvas.getBoundingClientRect();
 
-            chunk.bushes.forEach(bush => {
-                const dist = Math.hypot(player.x - bush.x, player.y - bush.y);
-                if (dist < INTERACTION_DISTANCE && dist < closestDist) {
-                    closestDist = dist;
-                    activeNearbyBush = bush;
-                }
-            });
+            if (player.health > 0) {
+                chunk.bushes.forEach(bush => {
+                    const dist = Math.hypot(player.x - bush.x, player.y - bush.y);
+                    if (dist < INTERACTION_DISTANCE && dist < closestDist) {
+                        closestDist = dist;
+                        activeNearbyBush = bush;
+                    }
+                });
+            }
 
             if (activeNearbyBush) {
                 const screenX = rect.left + (activeNearbyBush.x * (rect.width / canvas.width));
@@ -1169,6 +1332,7 @@
             requestAnimationFrame(gameLoop);
         }
 
+        updateHeartsUI();
         updateHotbarUI();
         requestAnimationFrame(gameLoop);
     </script>
