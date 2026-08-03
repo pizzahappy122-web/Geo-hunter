@@ -372,7 +372,6 @@
             const now = audioCtx.currentTime;
 
             if (type === 'sword') {
-                // Whoosh Slash Sound
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
                 osc.connect(gain);
@@ -389,7 +388,6 @@
                 osc.stop(now + 0.15);
 
             } else if (type === 'hit') {
-                // Enemy Impact Hit Sound
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
                 osc.connect(gain);
@@ -406,7 +404,6 @@
                 osc.stop(now + 0.2);
 
             } else if (type === 'coin') {
-                // Trackable Pickup Coin Chime
                 const osc1 = audioCtx.createOscillator();
                 const osc2 = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
@@ -418,8 +415,8 @@
                 osc1.type = 'sine';
                 osc2.type = 'sine';
 
-                osc1.frequency.setValueAtTime(987.77, now); // B5
-                osc1.frequency.setValueAtTime(1318.51, now + 0.08); // E6
+                osc1.frequency.setValueAtTime(987.77, now);
+                osc1.frequency.setValueAtTime(1318.51, now + 0.08);
 
                 gain.gain.setValueAtTime(0.25, now);
                 gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
@@ -445,12 +442,12 @@
             }
         }
 
-        // Capitalized Frame Image File Paths (.jpg)
+        // Updated Player Sprite File Paths (.png)
         const SPRITE_FILES = {
-            down:  ['Down1.jpg',  'Down2.jpg',  'Down3.jpg'],
-            up:    ['Up1.jpg',    'Up2.jpg',    'Up3.jpg'],
-            left:  ['Left1.jpg',  'Left2.jpg',  'Left3.jpg'],
-            right: ['Right1.jpg', 'Right2.jpg', 'Right3.jpg']
+            down:  ['Down1.png',  'Down2.png',  'Down3.png'],
+            up:    ['Up1.png',    'Up2.png',    'Up3.png'],
+            left:  ['Left1.png',  'Left2.png',  'Left3.png'],
+            right: ['Right1.png', 'Right2.png', 'Right3.png']
         };
 
         const playerSprites = {
@@ -590,7 +587,7 @@
             }
 
             rustle() {
-                this.rustleTimer = 0.4; // Rustle for 0.4s
+                this.rustleTimer = 0.4;
                 for (let i = 0; i < 8; i++) {
                     leavesParticles.push({
                         x: this.x + (Math.random() - 0.5) * 20,
@@ -761,7 +758,7 @@
             player.isAttacking = true;
             player.attackTimer = ATTACK_DURATION;
 
-            playSound('sword'); // Whoosh Slash Sound
+            playSound('sword');
 
             const chunk = getOrCreateChunk(player.gridX, player.gridY);
             chunk.monsters.forEach(m => {
@@ -769,7 +766,7 @@
                 const dist = Math.hypot(player.x - m.x, player.y - m.y);
                 if (dist < 55) {
                     m.alive = false;
-                    playSound('hit'); // Hit Enemy Sound
+                    playSound('hit');
                     questState.monstersDefeated++;
                     updateQuestProgress();
                 }
@@ -943,7 +940,7 @@
             if (emptyIndex !== -1) {
                 inventory[emptyIndex] = { name: "Trackable", type: "trackable", icon: "🏷️" };
                 activeNearbyBush.trackableTaken = true;
-                playSound('coin'); // Coin Sound when trackable claimed
+                playSound('coin');
                 updateHotbarUI();
             } else {
                 alert("Inventory Full!");
@@ -1104,7 +1101,6 @@
             chunk.bushes.forEach(b => b.draw(deltaTime));
             chunk.rocks.forEach(r => r.draw());
 
-            // Leaf particles animation
             for (let i = leavesParticles.length - 1; i >= 0; i--) {
                 const p = leavesParticles[i];
                 p.x += p.vx * deltaTime;
