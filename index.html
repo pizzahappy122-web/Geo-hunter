@@ -133,6 +133,30 @@
             cursor: pointer;
         }
 
+        #mobile-sword-btn {
+            display: none;
+            position: absolute;
+            bottom: 25px;
+            right: 25px;
+            width: 65px;
+            height: 65px;
+            background: rgba(231, 76, 60, 0.85);
+            border: 3px solid white;
+            border-radius: 50%;
+            color: white;
+            font-size: 26px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            z-index: 25;
+            cursor: pointer;
+        }
+        #mobile-sword-btn:active {
+            background: #c0392b;
+            transform: scale(0.95);
+        }
+
         /* Modal Styles */
         .game-modal {
             display: none;
@@ -171,6 +195,48 @@
         }
         .modal-btn.warning {
             background: #e74c3c;
+        }
+
+        /* Trackable Light Beams Overlay */
+        #trackable-overlay {
+            display: none;
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 50;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            pointer-events: auto;
+        }
+        .sunburst-container {
+            position: relative;
+            width: 260px;
+            height: 260px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .sunburst {
+            position: absolute;
+            width: 260px;
+            height: 260px;
+            background: repeating-conic-gradient(
+                from 0deg,
+                rgba(241, 196, 15, 0.6) 0deg 15deg,
+                transparent 15deg 30deg
+            );
+            border-radius: 50%;
+            animation: rotateRays 8s linear infinite;
+        }
+        @keyframes rotateRays {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .trackable-display-icon {
+            font-size: 80px;
+            z-index: 2;
+            filter: drop-shadow(0 0 10px #f1c40f);
         }
 
         /* Quest Card Styling */
@@ -244,6 +310,7 @@
         <div id="steal-warning">⚠️ DON'T STEAL CACHES! ⚠️</div>
 
         <button id="mobile-bush-btn">SEARCH [E]</button>
+        <div id="mobile-sword-btn">🗡️</div>
 
         <div id="hotbar">
             <div class="slot selected" onclick="selectSlot(0)">
@@ -261,6 +328,16 @@
             <h3 id="modal-title">Cache Found!</h3>
             <div id="modal-actions"></div>
             <button class="modal-btn warning" onclick="closeModal('cache-modal')">Close</button>
+        </div>
+
+        <!-- Trackable Showcase Overlay -->
+        <div id="trackable-overlay">
+            <div class="sunburst-container">
+                <div class="sunburst"></div>
+                <div class="trackable-display-icon">🏷️</div>
+            </div>
+            <h2 style="color: #f1c40f; margin-top: 15px;">TRACKABLE DISCOVERED!</h2>
+            <button class="modal-btn" style="width: 200px; margin-top: 10px;" onclick="claimTrackable()">CLAIM TRACKABLE</button>
         </div>
 
         <!-- Quest Modal -->
@@ -284,6 +361,74 @@
     </div>
 
     <script>
+        // Web Audio Synthesizer Sound Generator
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
+
+        function playSound(type) {
+            if (!audioCtx) audioCtx = new AudioCtx();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            const now = audioCtx.currentTime;
+
+            if (type === 'sword') {
+                // Whoosh Slash Sound
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(500, now);
+                osc.frequency.exponentialRampToValueAtTime(60, now + 0.15);
+
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+
+                osc.start(now);
+                osc.stop(now + 0.15);
+
+            } else if (type === 'hit') {
+                // Enemy Impact Hit Sound
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(140, now);
+                osc.frequency.exponentialRampToValueAtTime(25, now + 0.2);
+
+                gain.gain.setValueAtTime(0.4, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+
+                osc.start(now);
+                osc.stop(now + 0.2);
+
+            } else if (type === 'coin') {
+                // Trackable Pickup Coin Chime
+                const osc1 = audioCtx.createOscillator();
+                const osc2 = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                osc1.connect(gain);
+                osc2.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc1.type = 'sine';
+                osc2.type = 'sine';
+
+                osc1.frequency.setValueAtTime(987.77, now); // B5
+                osc1.frequency.setValueAtTime(1318.51, now + 0.08); // E6
+
+                gain.gain.setValueAtTime(0.25, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+
+                osc1.start(now);
+                osc1.stop(now + 0.3);
+            }
+        }
+
         // Environment Asset Loading (.png)
         const GAME_SPRITES = {
             rockSheet: 'Rock1.png',      
@@ -332,13 +477,19 @@
         const totalEl = document.getElementById('total');
         const sectorEl = document.getElementById('sector');
         const mobileBushBtn = document.getElementById('mobile-bush-btn');
+        const mobileSwordBtn = document.getElementById('mobile-sword-btn');
         const cacheModal = document.getElementById('cache-modal');
+        const trackableOverlay = document.getElementById('trackable-overlay');
         const questModal = document.getElementById('quest-modal');
         const modalActions = document.getElementById('modal-actions');
         const modalTitle = document.getElementById('modal-title');
         const stealWarning = document.getElementById('steal-warning');
 
         const isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+        if (isMobile) {
+            mobileSwordBtn.style.display = 'flex';
+        }
+
         const INTERACTION_DISTANCE = 55;
 
         // Quests State
@@ -351,6 +502,8 @@
             code2: "SLAYER-7740"
         };
 
+        const ATTACK_DURATION = 0.25;
+
         const player = {
             gridX: 0,
             gridY: 0,
@@ -358,9 +511,9 @@
             y: canvas.height / 2,
             radius: 12,
             speed: 220,
-            direction: 0, // 0 = down, 1 = up, 2 = left, 3 = right
+            direction: 0,
             animTimer: 0,
-            animFrame: 0, // 0, 1, 2 mapping to frame 1, 2, 3
+            animFrame: 0,
             isMoving: false,
             isAttacking: false,
             attackTimer: 0
@@ -415,6 +568,7 @@
         const worldMap = {};
         let totalCachesDiscoveredInWorld = 0;
         let activeNearbyBush = null;
+        let leavesParticles = [];
 
         class Bush {
             constructor(x, y) {
@@ -425,6 +579,7 @@
                 this.hasTrackable = Math.random() < 0.4;
                 this.trackableTaken = false;
                 this.signed = false;
+                this.rustleTimer = 0;
                 this.leaves = [
                     { dx: 0, dy: 0, r: this.radius },
                     { dx: -9, dy: -7, r: this.radius * 0.7 },
@@ -434,7 +589,29 @@
                 ];
             }
 
-            draw() {
+            rustle() {
+                this.rustleTimer = 0.4; // Rustle for 0.4s
+                for (let i = 0; i < 8; i++) {
+                    leavesParticles.push({
+                        x: this.x + (Math.random() - 0.5) * 20,
+                        y: this.y + (Math.random() - 0.5) * 20,
+                        vx: (Math.random() - 0.5) * 60,
+                        vy: -Math.random() * 40 - 20,
+                        life: 0.5
+                    });
+                }
+            }
+
+            draw(deltaTime) {
+                let shakeX = 0;
+                if (this.rustleTimer > 0) {
+                    this.rustleTimer -= deltaTime;
+                    shakeX = Math.sin(this.rustleTimer * 50) * 4;
+                }
+
+                ctx.save();
+                ctx.translate(shakeX, 0);
+
                 const img = images.bushImage;
                 if (img && img.complete && img.naturalWidth !== 0) {
                     ctx.drawImage(img, this.x - 30, this.y - 30, 60, 60);
@@ -453,6 +630,8 @@
                     ctx.arc(this.x, this.y, 6, 0, Math.PI * 2);
                     ctx.fill();
                 }
+
+                ctx.restore();
             }
         }
 
@@ -575,16 +754,22 @@
         getOrCreateChunk(0, 0);
 
         function triggerAttack() {
+            const selectedItem = inventory[selectedSlotIndex];
+            if (!selectedItem || selectedItem.type !== "weapon") return;
+
             if (player.isAttacking) return;
             player.isAttacking = true;
-            player.attackTimer = 0.25;
+            player.attackTimer = ATTACK_DURATION;
+
+            playSound('sword'); // Whoosh Slash Sound
 
             const chunk = getOrCreateChunk(player.gridX, player.gridY);
             chunk.monsters.forEach(m => {
                 if (!m.alive) return;
                 const dist = Math.hypot(player.x - m.x, player.y - m.y);
-                if (dist < 48) {
+                if (dist < 55) {
                     m.alive = false;
+                    playSound('hit'); // Hit Enemy Sound
                     questState.monstersDefeated++;
                     updateQuestProgress();
                 }
@@ -600,7 +785,7 @@
             }
 
             if ((e.code === 'KeyE' || e.key.toLowerCase() === 'e') && activeNearbyBush) {
-                openCacheModal(activeNearbyBush);
+                interactWithBush(activeNearbyBush);
             }
 
             if (e.code === 'Space') {
@@ -613,7 +798,8 @@
             keys[e.key.toLowerCase()] = false;
         });
 
-        canvas.addEventListener('click', () => {
+        mobileSwordBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
             triggerAttack();
         });
 
@@ -649,8 +835,15 @@
             });
         }
 
+        function interactWithBush(bush) {
+            bush.rustle();
+            setTimeout(() => {
+                openCacheModal(bush);
+            }, 250);
+        }
+
         mobileBushBtn.addEventListener('click', () => {
-            if (activeNearbyBush) openCacheModal(activeNearbyBush);
+            if (activeNearbyBush) interactWithBush(activeNearbyBush);
         });
 
         function updateQuestProgress() {
@@ -715,17 +908,10 @@
                 if (bush.hasTrackable && !bush.trackableTaken) {
                     const trackBtn = document.createElement('button');
                     trackBtn.className = "modal-btn";
-                    trackBtn.textContent = `Take Trackable${pcHint('3')}`;
+                    trackBtn.textContent = `Inspect Trackable${pcHint('3')}`;
                     trackBtn.onclick = () => {
-                        const emptyIndex = inventory.findIndex(slot => slot === null);
-                        if (emptyIndex !== -1) {
-                            inventory[emptyIndex] = { name: "Trackable", type: "trackable", icon: "🏷️" };
-                            bush.trackableTaken = true;
-                            updateHotbarUI();
-                        } else {
-                            alert("Inventory Full!");
-                        }
                         closeModal('cache-modal');
+                        trackableOverlay.style.display = 'flex';
                     };
                     modalActions.appendChild(trackBtn);
                 }
@@ -749,6 +935,20 @@
             }
 
             cacheModal.style.display = 'block';
+        }
+
+        function claimTrackable() {
+            if (!activeNearbyBush) return;
+            const emptyIndex = inventory.findIndex(slot => slot === null);
+            if (emptyIndex !== -1) {
+                inventory[emptyIndex] = { name: "Trackable", type: "trackable", icon: "🏷️" };
+                activeNearbyBush.trackableTaken = true;
+                playSound('coin'); // Coin Sound when trackable claimed
+                updateHotbarUI();
+            } else {
+                alert("Inventory Full!");
+            }
+            trackableOverlay.style.display = 'none';
         }
 
         function closeModal(id) {
@@ -780,21 +980,18 @@
             player.isMoving = (dx !== 0 || dy !== 0);
 
             if (player.isMoving) {
-                // Direction selection: 0 = down, 1 = up, 2 = left, 3 = right
                 if (Math.abs(dx) > Math.abs(dy)) {
                     player.direction = dx > 0 ? 3 : 2;
                 } else {
                     player.direction = dy > 0 ? 0 : 1;
                 }
 
-                // Cycle frame every 0.5 seconds (0 -> 1 -> 2 -> 0 maps to frame 1 -> 2 -> 3 -> 1)
                 player.animTimer += deltaTime;
                 if (player.animTimer >= 0.5) {
                     player.animTimer = 0;
                     player.animFrame = (player.animFrame + 1) % 3;
                 }
             } else {
-                // Reset to Frame 1 (Index 0) when idle
                 player.animFrame = 0;
                 player.animTimer = 0;
             }
@@ -806,7 +1003,6 @@
 
             const currentChunk = getOrCreateChunk(player.gridX, player.gridY);
             
-            // Collisions
             for (const rock of currentChunk.rocks) {
                 const dist = Math.hypot(nextX - rock.x, nextY - rock.y);
                 const minDist = player.radius + rock.radius;
@@ -830,7 +1026,6 @@
             player.x = nextX;
             player.y = nextY;
 
-            // Screen Chunk Transitions
             if (player.x > canvas.width) { player.gridX++; player.x = player.radius + 2; }
             else if (player.x < 0) { player.gridX--; player.x = canvas.width - player.radius - 2; }
             
@@ -841,8 +1036,8 @@
         }
 
         function drawPlayerSprite() {
-            const dirKey = DIRECTION_KEYS[player.direction]; // 'down', 'up', 'left', or 'right'
-            const spriteImg = playerSprites[dirKey][player.animFrame]; // Select frame 0, 1, or 2
+            const dirKey = DIRECTION_KEYS[player.direction];
+            const spriteImg = playerSprites[dirKey][player.animFrame];
 
             if (spriteImg && spriteImg.complete && spriteImg.naturalWidth !== 0) {
                 ctx.drawImage(
@@ -850,7 +1045,6 @@
                     player.x - 20, player.y - 22, 40, 40
                 );
             } else {
-                // Fallback circle if image is still loading
                 ctx.fillStyle = '#2ecc71';
                 ctx.beginPath();
                 ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
@@ -858,11 +1052,40 @@
             }
 
             if (player.isAttacking) {
-                ctx.strokeStyle = '#f1c40f';
-                ctx.lineWidth = 4;
+                const progress = 1 - (player.attackTimer / ATTACK_DURATION);
+
+                let baseAngle = 0;
+                if (player.direction === 0) baseAngle = Math.PI / 2;
+                else if (player.direction === 1) baseAngle = -Math.PI / 2;
+                else if (player.direction === 2) baseAngle = Math.PI;
+                else if (player.direction === 3) baseAngle = 0;
+
+                const startAngle = baseAngle - Math.PI / 2;
+                const currentAngle = startAngle + (progress * Math.PI);
+
+                ctx.save();
+                ctx.translate(player.x, player.y);
+
                 ctx.beginPath();
-                ctx.arc(player.x, player.y, 35, 0, Math.PI * 2);
+                ctx.arc(0, 0, 42, startAngle, currentAngle, false);
+                ctx.lineWidth = 10;
+                ctx.strokeStyle = "rgba(255, 255, 255, 0.75)";
+                ctx.lineCap = "round";
                 ctx.stroke();
+
+                ctx.beginPath();
+                ctx.arc(0, 0, 42, startAngle, currentAngle, false);
+                ctx.lineWidth = 4;
+                ctx.strokeStyle = "#ffffff";
+                ctx.stroke();
+
+                ctx.rotate(currentAngle + Math.PI / 4); 
+                ctx.font = '28px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'bottom';
+                ctx.fillText("🗡️", 0, -12);
+
+                ctx.restore();
             }
         }
 
@@ -878,8 +1101,24 @@
 
             const chunk = getOrCreateChunk(player.gridX, player.gridY);
 
-            chunk.bushes.forEach(b => b.draw());
+            chunk.bushes.forEach(b => b.draw(deltaTime));
             chunk.rocks.forEach(r => r.draw());
+
+            // Leaf particles animation
+            for (let i = leavesParticles.length - 1; i >= 0; i--) {
+                const p = leavesParticles[i];
+                p.x += p.vx * deltaTime;
+                p.y += p.vy * deltaTime;
+                p.life -= deltaTime;
+                if (p.life <= 0) {
+                    leavesParticles.splice(i, 1);
+                } else {
+                    ctx.fillStyle = '#2ecc71';
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
 
             activeNearbyBush = null;
             let closestDist = Infinity;
