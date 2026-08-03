@@ -32,7 +32,7 @@
         }
         canvas {
             display: block;
-            background-color: #4d7a36;
+            background-color: #1b3815;
             image-rendering: pixelated;
         }
         #ui {
@@ -347,7 +347,7 @@
 
         <!-- Cache Modal -->
         <div id="cache-modal" class="game-modal">
-            <h3 id="modal-title">Cache Found!</h3>
+            <h3 id="modal-title">Geocache Found!</h3>
             <canvas id="cache-canvas-preview" width="100" height="70"></canvas>
             <div id="modal-actions"></div>
             <button class="modal-btn warning" onclick="closeModal('cache-modal')">Close [E]</button>
@@ -474,7 +474,7 @@
             }
         }
 
-        // Helper function to draw Green Metal Ammo Box with GC markings
+        // Helper function to draw Green Metal Geocache Container with GC markings
         function drawAmmoBox(targetCtx, x, y, width, height) {
             targetCtx.save();
             
@@ -546,24 +546,31 @@
             }
         }
 
-        // Function to render seamless grass tiling based on exact 905x588 tile dimensions
-        const GRASS_TILE_WIDTH = 905;
-        const GRASS_TILE_HEIGHT = 588;
+        // Scaled down grass dimensions for finer texture (30% scale)
+        const GRASS_SCALE = 0.3;
 
         function drawGrassBackground(gx, gy) {
             ctx.save();
             if (grassPatternObj) {
-                ctx.fillStyle = grassPatternObj;
-                const tileWidth = images.grassPattern.width || GRASS_TILE_WIDTH;
-                const tileHeight = images.grassPattern.height || GRASS_TILE_HEIGHT;
+                ctx.save();
+                ctx.scale(GRASS_SCALE, GRASS_SCALE);
                 
-                const offsetX = -((gx * canvas.width) % tileWidth);
-                const offsetY = -((gy * canvas.height) % tileHeight);
+                const tileWidth = (images.grassPattern.width || 905);
+                const tileHeight = (images.grassPattern.height || 588);
+                
+                const offsetX = -(((gx * canvas.width) / GRASS_SCALE) % tileWidth);
+                const offsetY = -(((gy * canvas.height) / GRASS_SCALE) % tileHeight);
                 
                 ctx.translate(offsetX, offsetY);
-                ctx.fillRect(-offsetX, -offsetY, canvas.width, canvas.height);
+                ctx.fillStyle = grassPatternObj;
+                ctx.fillRect(-offsetX, -offsetY, canvas.width / GRASS_SCALE, canvas.height / GRASS_SCALE);
+                ctx.restore();
+
+                // Darken Grass Overlay Tint
+                ctx.fillStyle = 'rgba(10, 35, 10, 0.45)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
             } else {
-                ctx.fillStyle = '#4d7a36';
+                ctx.fillStyle = '#1b3815';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
             }
             ctx.restore();
@@ -804,14 +811,17 @@
             }
         }
 
+        // T-Rex Dinosaur Monster Class 🦖
         class Monster {
             constructor(x, y) {
                 this.x = x; this.y = y;
-                this.radius = 14;
-                this.speed = 120;
+                this.radius = 18;
+                this.speed = 110;
                 this.detectionRange = 180;
                 this.isChasing = false;
                 this.alive = true;
+                this.facingLeft = false;
+                this.sprite = '🦖';
             }
 
             update(deltaTime) {
@@ -820,6 +830,10 @@
                 if (dist < this.detectionRange) {
                     this.isChasing = true;
                     const angle = Math.atan2(player.y - this.y, player.x - this.x);
+                    
+                    // Facing orientation towards player
+                    this.facingLeft = (player.x < this.x);
+
                     this.x += Math.cos(angle) * this.speed * deltaTime;
                     this.y += Math.sin(angle) * this.speed * deltaTime;
                 } else {
@@ -860,26 +874,31 @@
 
             draw() {
                 if (!this.alive) return;
+
+                ctx.save();
+                
+                // Exclamation mark warning when chasing player
                 if (this.isChasing) {
                     ctx.fillStyle = '#e74c3c';
                     ctx.font = 'bold 22px Arial';
                     ctx.textAlign = 'center';
-                    ctx.fillText('!', this.x, this.y - 24);
+                    ctx.fillText('!', this.x, this.y - 28);
                 }
 
-                ctx.strokeStyle = '#e74c3c';
-                ctx.lineWidth = 3;
-                ctx.fillStyle = '#3498db';
+                ctx.translate(this.x, this.y);
 
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.stroke();
+                // Flip emoji horizontally if facing left
+                if (this.facingLeft) {
+                    ctx.scale(-1, 1);
+                }
 
-                ctx.fillStyle = '#ffffff';
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.radius * 0.4, 0, Math.PI * 2);
-                ctx.fill();
+                // Render T-Rex Emoji Sprite
+                ctx.font = '36px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(this.sprite, 0, 0);
+
+                ctx.restore();
             }
         }
 
@@ -986,7 +1005,6 @@
                 selectSlot(parseInt(e.key) - 1);
             }
 
-            // Keyboard Interactions for Bush Search / Modal Actions / Toggle
             if (key === 'q') {
                 toggleQuestModal();
             } else if (key === 'e') {
@@ -1112,7 +1130,7 @@
             pCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
 
             if (bush.hasCache && !bush.cacheTaken) {
-                modalTitle.textContent = "Ammo Box Discovered!";
+                modalTitle.textContent = "Geocache Discovered!";
                 previewCanvas.style.display = "block";
                 drawAmmoBox(pCtx, 20, 18, 60, 38);
 
@@ -1134,11 +1152,11 @@
                 const takeBtn = document.createElement('button');
                 takeBtn.id = "btn-take-cache";
                 takeBtn.className = "modal-btn";
-                takeBtn.textContent = isMobile ? "Take Ammo Box" : "Take Ammo Box [R]";
+                takeBtn.textContent = isMobile ? "Take Geocache" : "Take Geocache [R]";
                 takeBtn.onclick = () => {
                     const emptyIndex = inventory.findIndex(slot => slot === null);
                     if (emptyIndex !== -1) {
-                        inventory[emptyIndex] = { name: "Ammo Box", type: "cache", icon: "📦" };
+                        inventory[emptyIndex] = { name: "Geocache", type: "cache", icon: "📦" };
                         bush.cacheTaken = true;
                         updateHotbarUI();
                     } else {
@@ -1199,7 +1217,7 @@
             if (cacheSlotIndex !== -1) {
                 const putBackBtn = document.createElement('button');
                 putBackBtn.className = "modal-btn";
-                putBackBtn.textContent = "Put Back Ammo Box";
+                putBackBtn.textContent = "Put Back Geocache";
                 putBackBtn.onclick = () => {
                     inventory[cacheSlotIndex] = null;
                     bush.hasCache = true;
