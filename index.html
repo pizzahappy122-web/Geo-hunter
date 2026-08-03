@@ -175,7 +175,7 @@
             text-align: center;
             z-index: 30;
             box-shadow: 0 0 20px rgba(0,0,0,0.8);
-            min-width: 300px;
+            min-width: 320px;
             pointer-events: auto;
         }
         .game-modal h3 {
@@ -268,7 +268,7 @@
         }
         .quest-progress {
             font-size: 13px;
-            margin: 6px 0;
+            margin: 4px 0;
             color: #ccc;
         }
         .code-box {
@@ -307,6 +307,14 @@
             from { transform: translateX(-50%) scale(1); }
             to { transform: translateX(-50%) scale(1.05); }
         }
+
+        /* Cache Canvas Display */
+        #cache-canvas-preview {
+            margin: 10px auto 15px auto;
+            display: block;
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+        }
     </style>
 </head>
 <body>
@@ -318,7 +326,7 @@
             <div id="hearts-container" class="hearts-display">❤️❤️❤️</div>
             <div>Screen: <span id="sector" class="sector-tag">X: 0, Y: 0</span></div>
             <div>Caches: <span id="score">0</span> / <span id="total">0</span></div>
-            <button id="quest-btn" onclick="openQuestModal()">QUESTS</button>
+            <button id="quest-btn" onclick="toggleQuestModal()">QUESTS [Q]</button>
         </div>
 
         <div id="steal-warning">⚠️ DON'T STEAL CACHES! ⚠️</div>
@@ -340,8 +348,9 @@
         <!-- Cache Modal -->
         <div id="cache-modal" class="game-modal">
             <h3 id="modal-title">Cache Found!</h3>
+            <canvas id="cache-canvas-preview" width="100" height="70"></canvas>
             <div id="modal-actions"></div>
-            <button class="modal-btn warning" onclick="closeModal('cache-modal')">Close</button>
+            <button class="modal-btn warning" onclick="closeModal('cache-modal')">Close [E]</button>
         </div>
 
         <!-- Trackable Showcase Overlay -->
@@ -351,7 +360,8 @@
                 <div class="trackable-display-icon">🏷️</div>
             </div>
             <h2 style="color: #f1c40f; margin-top: 15px;">TRACKABLE DISCOVERED!</h2>
-            <button class="modal-btn" style="width: 200px; margin-top: 10px;" onclick="claimTrackable()">CLAIM TRACKABLE</button>
+            <button id="claim-trackable-btn" class="modal-btn" style="width: 200px; margin-top: 10px;" onclick="claimTrackable()">CLAIM TRACKABLE [T]</button>
+            <button class="modal-btn warning" style="width: 200px;" onclick="closeModal('trackable-overlay')">Close [E]</button>
         </div>
 
         <!-- Quest Modal -->
@@ -360,17 +370,18 @@
             
             <div class="quest-card">
                 <div class="quest-title">Quest 1: Master Cache Hunter</div>
-                <div class="quest-progress">Find 20 Caches (<span id="q1-count">0</span> / 20)</div>
+                <div class="quest-progress">• Find 20 Caches (<span id="q1-count">0</span> / 20)</div>
                 <div>Code 1: <span id="q1-code" class="code-box code-locked">🔒 LOCKED</span></div>
             </div>
 
             <div class="quest-card">
-                <div class="quest-title">Quest 2: Trackable Relocator</div>
-                <div class="quest-progress">Move 5 Trackables to new Caches (<span id="q2-count">0</span> / 5)</div>
+                <div class="quest-title">Quest 2: Relocator & Slayer</div>
+                <div class="quest-progress">• Move 5 Trackables to new Caches (<span id="q2-trackables">0</span> / 5)</div>
+                <div class="quest-progress">• Defeat 10 Monsters (<span id="q2-monsters">0</span> / 10)</div>
                 <div>Code 2: <span id="q2-code" class="code-box code-locked">🔒 LOCKED</span></div>
             </div>
 
-            <button class="modal-btn warning" onclick="closeModal('quest-modal')">Close</button>
+            <button class="modal-btn warning" onclick="closeModal('quest-modal')">Close [Q / E]</button>
         </div>
 
         <!-- Game Over Modal -->
@@ -463,8 +474,57 @@
             }
         }
 
+        // Helper function to draw Green Metal Ammo Box with GC markings
+        function drawAmmoBox(targetCtx, x, y, width, height) {
+            targetCtx.save();
+            
+            // Box Body (Olive Drab Green)
+            targetCtx.fillStyle = '#4a5d31';
+            targetCtx.fillRect(x, y, width, height);
+
+            // Shadow / Inset Border
+            targetCtx.strokeStyle = '#2b381b';
+            targetCtx.lineWidth = 2;
+            targetCtx.strokeRect(x, y, width, height);
+
+            // Box Lid Top Rim
+            targetCtx.fillStyle = '#3a4a26';
+            targetCtx.fillRect(x - 2, y, width + 4, height * 0.25);
+            targetCtx.strokeRect(x - 2, y, width + 4, height * 0.25);
+
+            // Metal Latch
+            targetCtx.fillStyle = '#7f8c8d';
+            targetCtx.fillRect(x + width * 0.42, y + height * 0.18, width * 0.16, height * 0.25);
+            targetCtx.strokeStyle = '#2c3e50';
+            targetCtx.strokeRect(x + width * 0.42, y + height * 0.18, width * 0.16, height * 0.25);
+
+            // Handle on Top
+            targetCtx.strokeStyle = '#2b381b';
+            targetCtx.lineWidth = 3;
+            targetCtx.beginPath();
+            targetCtx.moveTo(x + width * 0.3, y);
+            targetCtx.lineTo(x + width * 0.3, y - 4);
+            targetCtx.lineTo(x + width * 0.7, y - 4);
+            targetCtx.lineTo(x + width * 0.7, y);
+            targetCtx.stroke();
+
+            // GC Stencil Marking (Yellow)
+            targetCtx.fillStyle = '#f1c40f';
+            targetCtx.font = `bold ${Math.floor(height * 0.38)}px Arial`;
+            targetCtx.textAlign = 'center';
+            targetCtx.textBaseline = 'middle';
+            targetCtx.fillText('GC', x + width / 2, y + height * 0.65);
+
+            targetCtx.restore();
+        }
+
+        // Core Game Canvas Elements
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
         // Environment Asset Loading (.png)
         const GAME_SPRITES = {
+            grassPattern: 'grass.png',
             rockSheet: 'Rock1.png',      
             pineTreeSheet: 'Tree1.png',  
             leafyTreeSheet: 'Tree1.png', 
@@ -472,18 +532,45 @@
         };
 
         const images = {};
+        let grassPatternObj = null;
+
         for (const [key, path] of Object.entries(GAME_SPRITES)) {
             if (path && path.trim() !== '') {
                 images[key] = new Image();
                 images[key].src = path;
+                if (key === 'grassPattern') {
+                    images[key].onload = () => {
+                        grassPatternObj = ctx.createPattern(images[key], 'repeat');
+                    };
+                }
             }
         }
 
+        // Function to render seamless grass tiling based on exact 905x588 tile dimensions
+        const GRASS_TILE_WIDTH = 905;
+        const GRASS_TILE_HEIGHT = 588;
+
+        function drawGrassBackground(gx, gy) {
+            ctx.save();
+            if (grassPatternObj) {
+                ctx.fillStyle = grassPatternObj;
+                const tileWidth = images.grassPattern.width || GRASS_TILE_WIDTH;
+                const tileHeight = images.grassPattern.height || GRASS_TILE_HEIGHT;
+                
+                const offsetX = -((gx * canvas.width) % tileWidth);
+                const offsetY = -((gy * canvas.height) % tileHeight);
+                
+                ctx.translate(offsetX, offsetY);
+                ctx.fillRect(-offsetX, -offsetY, canvas.width, canvas.height);
+            } else {
+                ctx.fillStyle = '#4d7a36';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+            ctx.restore();
+        }
+
         // Animated Player Sprites Setup (6 Idle frames, 6 Run frames)
-        const playerSprites = {
-            idle: [],
-            run: []
-        };
+        const playerSprites = { idle: [], run: [] };
 
         for (let i = 1; i <= 6; i++) {
             const img = new Image();
@@ -497,9 +584,6 @@
             playerSprites.run.push(img);
         }
 
-        // Core Game Canvas Elements
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
         const scoreEl = document.getElementById('score');
         const totalEl = document.getElementById('total');
         const sectorEl = document.getElementById('sector');
@@ -526,8 +610,11 @@
             cachesFound: 0,
             cachesTarget: 20,
             code1: "CACHE-9921",
+            
             trackablesRelocated: 0,
             trackablesTarget: 5,
+            monstersDefeated: 0,
+            monstersTarget: 10,
             code2: "SLAYER-7740"
         };
 
@@ -620,6 +707,7 @@
                 this.cacheTaken = false;
                 this.hasTrackable = Math.random() < 0.4;
                 this.trackableTaken = false;
+                this.isPermanentlyLockedTrackable = false;
                 this.originalTrackableSourceId = this.id;
                 this.signed = false;
                 this.rustleTimer = 0;
@@ -738,9 +826,7 @@
                     this.isChasing = false;
                 }
 
-                // Check collision with player
                 if (dist < this.radius + player.radius) {
-                    // Calculate if monster is touching the swinging sword arc instead of body
                     let touchingSword = false;
 
                     if (player.isAttacking) {
@@ -749,7 +835,6 @@
                         const endAngle = Math.PI / 2;
                         const swordAngle = startAngle + (progress * (endAngle - startAngle));
                         
-                        // Facing Left modifies sword angle space
                         const dir = player.facingLeft ? -1 : 1;
                         const swordTipX = player.x + Math.cos(swordAngle) * 42 * dir;
                         const swordTipY = player.y + Math.sin(swordAngle) * 42;
@@ -762,7 +847,7 @@
 
                     if (!touchingSword && player.invulnerableTimer <= 0) {
                         player.health--;
-                        player.invulnerableTimer = 1.0; // 1s Cooldown
+                        player.invulnerableTimer = 1.0;
                         playSound('damage');
                         updateHeartsUI();
 
@@ -810,8 +895,14 @@
                 if (bushes[i].hasCache) totalCachesDiscoveredInWorld++;
             }
 
-            for (let i = 0; i < 3; i++) {
+            const numRocks = isSpawn ? 3 : Math.floor(Math.random() * 3) + 5;
+            const numTrees = isSpawn ? 3 : Math.floor(Math.random() * 4) + 6;
+
+            for (let i = 0; i < numRocks; i++) {
                 rocks.push(new Rock(80 + Math.random() * 640, 80 + Math.random() * 440));
+            }
+
+            for (let i = 0; i < numTrees; i++) {
                 trees.push(new Tree(80 + Math.random() * 640, 80 + Math.random() * 440));
             }
 
@@ -831,7 +922,6 @@
         getOrCreateChunk(0, 0);
 
         function respawnPlayer() {
-            // Reset player properties
             player.health = player.maxHealth;
             player.invulnerableTimer = 0;
             player.gridX = 0;
@@ -840,22 +930,20 @@
             player.y = canvas.height / 2;
             player.isAttacking = false;
 
-            // Reset quests & inventory
             questState.cachesFound = 0;
             questState.trackablesRelocated = 0;
+            questState.monstersDefeated = 0;
             inventory = [
                 { name: "Wooden Sword", type: "weapon", icon: "🗡️" },
                 null, null, null, null
             ];
             selectedSlotIndex = 0;
 
-            // Reset World Map state
             worldMap = {};
             totalCachesDiscoveredInWorld = 0;
             bushCounter = 0;
             getOrCreateChunk(0, 0);
 
-            // Update UI elements
             scoreEl.textContent = 0;
             updateHeartsUI();
             updateHotbarUI();
@@ -881,21 +969,48 @@
                 const dist = Math.hypot(player.x - m.x, player.y - m.y);
                 if (dist < 55) {
                     m.alive = false;
+                    questState.monstersDefeated++;
+                    updateQuestProgress();
                     playSound('hit');
                 }
             });
         }
 
+        // Global Keyboard Event Handler
         window.addEventListener('keydown', e => {
+            const key = e.key.toLowerCase();
             keys[e.code] = true;
-            keys[e.key.toLowerCase()] = true;
+            keys[key] = true;
 
             if (['1', '2', '3', '4', '5'].includes(e.key)) {
                 selectSlot(parseInt(e.key) - 1);
             }
 
-            if ((e.code === 'KeyE' || e.key.toLowerCase() === 'e') && activeNearbyBush) {
-                interactWithBush(activeNearbyBush);
+            // Keyboard Interactions for Bush Search / Modal Actions / Toggle
+            if (key === 'q') {
+                toggleQuestModal();
+            } else if (key === 'e') {
+                if (questModal.style.display === 'block') {
+                    closeModal('quest-modal');
+                } else if (trackableOverlay.style.display === 'flex') {
+                    closeModal('trackable-overlay');
+                } else if (cacheModal.style.display === 'block') {
+                    closeModal('cache-modal');
+                } else if (activeNearbyBush) {
+                    interactWithBush(activeNearbyBush);
+                }
+            } else if (key === 'r') {
+                if (cacheModal.style.display === 'block') {
+                    const btn = document.getElementById('btn-take-cache');
+                    if (btn) btn.click();
+                }
+            } else if (key === 't') {
+                if (trackableOverlay.style.display === 'flex') {
+                    claimTrackable();
+                } else if (cacheModal.style.display === 'block') {
+                    const btn = document.getElementById('btn-inspect-trackable');
+                    if (btn) btn.click();
+                }
             }
 
             if (e.code === 'Space') {
@@ -904,8 +1019,9 @@
         });
 
         window.addEventListener('keyup', e => {
+            const key = e.key.toLowerCase();
             keys[e.code] = false;
-            keys[e.key.toLowerCase()] = false;
+            keys[key] = false;
         });
 
         mobileSwordBtn.addEventListener('click', (e) => {
@@ -958,7 +1074,8 @@
 
         function updateQuestProgress() {
             document.getElementById('q1-count').textContent = questState.cachesFound;
-            document.getElementById('q2-count').textContent = questState.trackablesRelocated;
+            document.getElementById('q2-trackables').textContent = questState.trackablesRelocated;
+            document.getElementById('q2-monsters').textContent = questState.monstersDefeated;
 
             const q1Code = document.getElementById('q1-code');
             if (questState.cachesFound >= questState.cachesTarget) {
@@ -970,7 +1087,7 @@
             }
 
             const q2Code = document.getElementById('q2-code');
-            if (questState.trackablesRelocated >= questState.trackablesTarget) {
+            if (questState.trackablesRelocated >= questState.trackablesTarget && questState.monstersDefeated >= questState.monstersTarget) {
                 q2Code.textContent = questState.code2;
                 q2Code.classList.remove('code-locked');
             } else {
@@ -979,21 +1096,30 @@
             }
         }
 
-        function openQuestModal() {
-            updateQuestProgress();
-            questModal.style.display = 'block';
+        function toggleQuestModal() {
+            if (questModal.style.display === 'block') {
+                closeModal('quest-modal');
+            } else {
+                updateQuestProgress();
+                questModal.style.display = 'block';
+            }
         }
 
         function openCacheModal(bush) {
             modalActions.innerHTML = "";
-            const pcHint = (key) => isMobile ? "" : ` [Key ${key}]`;
+            const previewCanvas = document.getElementById('cache-canvas-preview');
+            const pCtx = previewCanvas.getContext('2d');
+            pCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
 
             if (bush.hasCache && !bush.cacheTaken) {
-                modalTitle.textContent = "Cache Discovered!";
+                modalTitle.textContent = "Ammo Box Discovered!";
+                previewCanvas.style.display = "block";
+                drawAmmoBox(pCtx, 20, 18, 60, 38);
 
                 const signBtn = document.createElement('button');
+                signBtn.id = "btn-sign-cache";
                 signBtn.className = "modal-btn";
-                signBtn.textContent = `Sign Cache${pcHint('1')}`;
+                signBtn.textContent = "Sign Cache Logbook";
                 signBtn.onclick = () => {
                     if (!bush.signed) {
                         bush.signed = true;
@@ -1006,12 +1132,13 @@
                 modalActions.appendChild(signBtn);
 
                 const takeBtn = document.createElement('button');
+                takeBtn.id = "btn-take-cache";
                 takeBtn.className = "modal-btn";
-                takeBtn.textContent = `Take Cache${pcHint('2')}`;
+                takeBtn.textContent = isMobile ? "Take Ammo Box" : "Take Ammo Box [R]";
                 takeBtn.onclick = () => {
                     const emptyIndex = inventory.findIndex(slot => slot === null);
                     if (emptyIndex !== -1) {
-                        inventory[emptyIndex] = { name: "Cache", type: "cache", icon: "📦" };
+                        inventory[emptyIndex] = { name: "Ammo Box", type: "cache", icon: "📦" };
                         bush.cacheTaken = true;
                         updateHotbarUI();
                     } else {
@@ -1021,10 +1148,11 @@
                 };
                 modalActions.appendChild(takeBtn);
 
-                if (bush.hasTrackable && !bush.trackableTaken) {
+                if (bush.hasTrackable && !bush.trackableTaken && !bush.isPermanentlyLockedTrackable) {
                     const trackBtn = document.createElement('button');
+                    trackBtn.id = "btn-inspect-trackable";
                     trackBtn.className = "modal-btn";
-                    trackBtn.textContent = `Inspect Trackable${pcHint('3')}`;
+                    trackBtn.textContent = isMobile ? "Inspect Trackable" : "Inspect Trackable [T]";
                     trackBtn.onclick = () => {
                         closeModal('cache-modal');
                         trackableOverlay.style.display = 'flex';
@@ -1032,20 +1160,24 @@
                     modalActions.appendChild(trackBtn);
                 }
 
-                // Put Trackable in this cache
                 const trackableSlotIndex = inventory.findIndex(item => item && item.type === 'trackable');
                 if (trackableSlotIndex !== -1) {
+                    const trackableItem = inventory[trackableSlotIndex];
+                    const isSameCache = (trackableItem.sourceBushId === bush.id);
+
                     const dropTrackBtn = document.createElement('button');
                     dropTrackBtn.className = "modal-btn";
-                    dropTrackBtn.textContent = `Drop Trackable Here${pcHint('4')}`;
+                    dropTrackBtn.textContent = isSameCache ? "Put Trackable Back" : "Drop Trackable Here";
+
                     dropTrackBtn.onclick = () => {
-                        const trackableItem = inventory[trackableSlotIndex];
                         inventory[trackableSlotIndex] = null;
                         
-                        // Verify if it is placed in a different cache than where it originated
-                        if (trackableItem.sourceBushId !== bush.id) {
+                        if (!isSameCache) {
                             questState.trackablesRelocated++;
+                            bush.isPermanentlyLockedTrackable = true;
                             updateQuestProgress();
+                        } else {
+                            bush.isPermanentlyLockedTrackable = false;
                         }
 
                         bush.hasTrackable = true;
@@ -1060,13 +1192,14 @@
 
             } else {
                 modalTitle.textContent = "Empty Bush";
+                previewCanvas.style.display = "none";
             }
 
             const cacheSlotIndex = inventory.findIndex(item => item && item.type === 'cache');
             if (cacheSlotIndex !== -1) {
                 const putBackBtn = document.createElement('button');
                 putBackBtn.className = "modal-btn";
-                putBackBtn.textContent = `Put Back Cache`;
+                putBackBtn.textContent = "Put Back Ammo Box";
                 putBackBtn.onclick = () => {
                     inventory[cacheSlotIndex] = null;
                     bush.hasCache = true;
@@ -1116,10 +1249,10 @@
             }
 
             let dx = 0, dy = 0;
-            if (keys['keyw'] || keys['arrowup']) dy -= 1;
-            if (keys['keys'] || keys['arrowdown']) dy += 1;
-            if (keys['keya'] || keys['arrowleft']) dx -= 1;
-            if (keys['keyd'] || keys['arrowright']) dx += 1;
+            if (keys['w'] || keys['arrowup']) dy -= 1;
+            if (keys['s'] || keys['arrowdown']) dy += 1;
+            if (keys['a'] || keys['arrowleft']) dx -= 1;
+            if (keys['d'] || keys['arrowright']) dx += 1;
 
             if (joystick.active && dx === 0 && dy === 0) {
                 const diffX = joystick.currX - joystick.startX;
@@ -1194,7 +1327,6 @@
         function drawPlayerSprite() {
             if (player.health <= 0) return;
 
-            // Invulnerability flash effect
             if (player.invulnerableTimer > 0 && Math.floor(performance.now() / 100) % 2 === 0) {
                 return;
             }
@@ -1221,7 +1353,6 @@
 
             ctx.restore();
 
-            // Sword Attack Arc & Swing Rendering
             if (player.isAttacking) {
                 const progress = 1 - (player.attackTimer / ATTACK_DURATION);
 
@@ -1236,7 +1367,6 @@
                     ctx.scale(-1, 1);
                 }
 
-                // Draw Slash Arc
                 ctx.beginPath();
                 ctx.arc(0, 0, 42, startAngle, currentAngle, false);
                 ctx.lineWidth = 8;
@@ -1250,7 +1380,6 @@
                 ctx.strokeStyle = "#ffffff";
                 ctx.stroke();
 
-                // Position & Rotate Sword Icon
                 ctx.rotate(currentAngle);
                 ctx.translate(32, 0);
                 ctx.rotate(Math.PI / 4 + Math.PI / 8 + Math.PI);
@@ -1269,7 +1398,7 @@
             const deltaTime = (currentTime - lastTime) / 1000;
             lastTime = currentTime;
 
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawGrassBackground(player.gridX, player.gridY);
 
             updatePlayer(deltaTime);
             checkHeldCacheTimer(deltaTime);
@@ -1308,7 +1437,7 @@
                 });
             }
 
-            if (activeNearbyBush) {
+            if (activeNearbyBush && cacheModal.style.display !== 'block' && questModal.style.display !== 'block' && trackableOverlay.style.display !== 'flex') {
                 const screenX = rect.left + (activeNearbyBush.x * (rect.width / canvas.width));
                 const screenY = rect.top + ((activeNearbyBush.y - 35) * (rect.height / canvas.height));
 
