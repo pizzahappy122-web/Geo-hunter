@@ -820,7 +820,7 @@
                 this.detectionRange = 180;
                 this.isChasing = false;
                 this.alive = true;
-                this.facingLeft = false;
+                this.facingLeft = true;
                 this.sprite = '🦖';
             }
 
@@ -831,7 +831,6 @@
                     this.isChasing = true;
                     const angle = Math.atan2(player.y - this.y, player.x - this.x);
                     
-                    // Facing orientation towards player
                     this.facingLeft = (player.x < this.x);
 
                     this.x += Math.cos(angle) * this.speed * deltaTime;
@@ -877,7 +876,6 @@
 
                 ctx.save();
                 
-                // Exclamation mark warning when chasing player
                 if (this.isChasing) {
                     ctx.fillStyle = '#e74c3c';
                     ctx.font = 'bold 22px Arial';
@@ -887,12 +885,10 @@
 
                 ctx.translate(this.x, this.y);
 
-                // Flip emoji horizontally if facing left
-                if (this.facingLeft) {
+                if (!this.facingLeft) {
                     ctx.scale(-1, 1);
                 }
 
-                // Render T-Rex Emoji Sprite
                 ctx.font = '36px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
@@ -1360,8 +1356,16 @@
                 ctx.scale(-1, 1);
             }
 
+            // PROPORTION & SIZE FIX: Preserve natural aspect ratio and scale height to 32px
+            const originalWidth = (spriteImg && spriteImg.naturalWidth) ? spriteImg.naturalWidth : 40;
+            const originalHeight = (spriteImg && spriteImg.naturalHeight) ? spriteImg.naturalHeight : 40;
+            const aspectRatio = originalWidth / originalHeight;
+
+            const drawHeight = 32;
+            const drawWidth = drawHeight * aspectRatio;
+
             if (spriteImg && spriteImg.complete && spriteImg.naturalWidth !== 0) {
-                ctx.drawImage(spriteImg, -20, -22, 40, 40);
+                ctx.drawImage(spriteImg, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
             } else {
                 ctx.fillStyle = '#2ecc71';
                 ctx.beginPath();
