@@ -1058,36 +1058,46 @@
 
             ctx.restore();
 
-            // Sword Attack Arc Rendering
+            // Sword Attack Arc & Swing Rendering
             if (player.isAttacking) {
                 const progress = 1 - (player.attackTimer / ATTACK_DURATION);
 
-                // Swing outward based on facing direction
-                const baseAngle = player.facingLeft ? Math.PI : 0;
-                const startAngle = baseAngle - Math.PI / 2;
-                const currentAngle = startAngle + (progress * Math.PI);
+                // Standard Top-to-Bottom swing geometry
+                const startAngle = -Math.PI / 2; // Starts pointing up (-90deg)
+                const endAngle = Math.PI / 2;    // Ends pointing down (+90deg)
+                const currentAngle = startAngle + (progress * (endAngle - startAngle));
 
                 ctx.save();
                 ctx.translate(player.x, player.y);
 
+                // Adjust coordinate space for left/right facing so top-to-bottom swing remains uniform
+                if (player.facingLeft) {
+                    ctx.scale(-1, 1);
+                }
+
+                // Draw Slash Arc
                 ctx.beginPath();
                 ctx.arc(0, 0, 42, startAngle, currentAngle, false);
-                ctx.lineWidth = 10;
+                ctx.lineWidth = 8;
                 ctx.strokeStyle = "rgba(255, 255, 255, 0.75)";
                 ctx.lineCap = "round";
                 ctx.stroke();
 
                 ctx.beginPath();
                 ctx.arc(0, 0, 42, startAngle, currentAngle, false);
-                ctx.lineWidth = 4;
+                ctx.lineWidth = 3;
                 ctx.strokeStyle = "#ffffff";
                 ctx.stroke();
 
-                ctx.rotate(currentAngle + Math.PI / 4); 
-                ctx.font = '28px sans-serif';
+                // Position & Rotate Sword Icon (Held correctly by the hilt at the tip of the arc)
+                ctx.rotate(currentAngle);
+                ctx.translate(32, 0); // Extend out to radius
+                ctx.rotate(Math.PI / 4 + Math.PI / 8); // Offset angle so blade points outward from hilt
+
+                ctx.font = '26px sans-serif';
                 ctx.textAlign = 'center';
-                ctx.textBaseline = 'bottom';
-                ctx.fillText("🗡️", 0, -12);
+                ctx.textBaseline = 'middle';
+                ctx.fillText("🗡️", 0, 0);
 
                 ctx.restore();
             }
