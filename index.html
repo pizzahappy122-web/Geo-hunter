@@ -165,6 +165,29 @@
             transform: scale(0.95);
         }
 
+        #potion-prompt {
+            display: none;
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(46, 204, 113, 0.9);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 14px;
+            border: 2px solid white;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            z-index: 20;
+            pointer-events: none;
+            animation: bounce 1s infinite alternate;
+        }
+        @keyframes bounce {
+            from { transform: translateX(-50%) translateY(0); }
+            to { transform: translateX(-50%) translateY(-5px); }
+        }
+
         /* Modal Styles */
         .game-modal {
             display: none;
@@ -200,6 +223,10 @@
         }
         .modal-btn:hover, .modal-btn:active {
             background: #2c3e50;
+        }
+        .modal-btn.confirm {
+            background: #27ae60;
+            border-color: #2ecc71;
         }
         .modal-btn.warning {
             background: #e74c3c;
@@ -290,7 +317,6 @@
             text-align: center;
             font-weight: bold;
             box-shadow: 0 8px 25px rgba(0,0,0,0.6);
-            /* Swallowtail cutouts on left and right sides */
             clip-path: polygon(
                 25px 0%, 100% 0%, 
                 calc(100% - 25px) 50%, 100% 100%, 
@@ -389,7 +415,6 @@
             to { transform: translateX(-50%) scale(1.05); }
         }
 
-        /* Cache Canvas Display */
         #cache-canvas-preview {
             margin: 10px auto 15px auto;
             display: block;
@@ -410,6 +435,7 @@
         </div>
 
         <div id="steal-warning">⚠️ DON'T STEAL CACHES! ⚠️</div>
+        <div id="potion-prompt">Press [SPACE] or Click to Drink Potion</div>
 
         <button id="mobile-bush-btn" class="action-btn">SEARCH [E]</button>
         <button id="mobile-turtle-btn" class="action-btn">PICK UP [F]</button>
@@ -424,6 +450,14 @@
             <div class="slot" onclick="selectSlot(2)"><span class="slot-num">3</span><span class="item-icon"></span></div>
             <div class="slot" onclick="selectSlot(3)"><span class="slot-num">4</span><span class="item-icon"></span></div>
             <div class="slot" onclick="selectSlot(4)"><span class="slot-num">5</span><span class="item-icon"></span></div>
+        </div>
+
+        <!-- Potion Confirmation Modal -->
+        <div id="potion-modal" class="game-modal">
+            <h3 id="potion-modal-title">Drink Potion?</h3>
+            <p id="potion-modal-desc" style="color: #ccc; font-size: 14px; margin-bottom: 15px;">Would you like to drink this Health Potion?</p>
+            <button class="modal-btn confirm" onclick="confirmDrinkPotion()">Yes, Drink It!</button>
+            <button class="modal-btn warning" onclick="closeModal('potion-modal')">No, Cancel</button>
         </div>
 
         <!-- Quest Completion Animated Banner -->
@@ -489,14 +523,12 @@
     </div>
 
     <script>
-        // Trackable Emoji Array
         const TRACKABLE_EMOJIS = ['🤣', '😎', '😀', '😅', '😂', '😑', '🤨', '😭', '🤪'];
 
         function getRandomTrackableEmoji() {
             return TRACKABLE_EMOJIS[Math.floor(Math.random() * TRACKABLE_EMOJIS.length)];
         }
 
-        // Web Audio Synthesizer Sound Generator
         const AudioCtx = window.AudioContext || window.webkitAudioContext;
         let audioCtx = null;
 
@@ -509,126 +541,81 @@
             if (type === 'sword') {
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-
+                osc.connect(gain); gain.connect(audioCtx.destination);
                 osc.type = 'sine';
                 osc.frequency.setValueAtTime(500, now);
                 osc.frequency.exponentialRampToValueAtTime(60, now + 0.15);
-
                 gain.gain.setValueAtTime(0.3, now);
                 gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
-
-                osc.start(now);
-                osc.stop(now + 0.15);
-
+                osc.start(now); osc.stop(now + 0.15);
             } else if (type === 'hit') {
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-
+                osc.connect(gain); gain.connect(audioCtx.destination);
                 osc.type = 'sawtooth';
                 osc.frequency.setValueAtTime(140, now);
                 osc.frequency.exponentialRampToValueAtTime(25, now + 0.2);
-
                 gain.gain.setValueAtTime(0.4, now);
                 gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
-
-                osc.start(now);
-                osc.stop(now + 0.2);
-
+                osc.start(now); osc.stop(now + 0.2);
             } else if (type === 'coin') {
                 const osc1 = audioCtx.createOscillator();
                 const osc2 = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
-
-                osc1.connect(gain);
-                osc2.connect(gain);
-                gain.connect(audioCtx.destination);
-
-                osc1.type = 'sine';
-                osc2.type = 'sine';
-
+                osc1.connect(gain); osc2.connect(gain); gain.connect(audioCtx.destination);
+                osc1.type = 'sine'; osc2.type = 'sine';
                 osc1.frequency.setValueAtTime(987.77, now);
                 osc1.frequency.setValueAtTime(1318.51, now + 0.08);
-
                 gain.gain.setValueAtTime(0.25, now);
                 gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-
-                osc1.start(now);
-                osc1.stop(now + 0.3);
-
+                osc1.start(now); osc1.stop(now + 0.3);
             } else if (type === 'heal') {
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-
+                osc.connect(gain); gain.connect(audioCtx.destination);
                 osc.type = 'triangle';
                 osc.frequency.setValueAtTime(220, now);
                 osc.frequency.exponentialRampToValueAtTime(523.25, now + 0.25);
-
                 gain.gain.setValueAtTime(0.3, now);
                 gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
-
-                osc.start(now);
-                osc.stop(now + 0.25);
-
+                osc.start(now); osc.stop(now + 0.25);
             } else if (type === 'overheal') {
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-
+                osc.connect(gain); gain.connect(audioCtx.destination);
                 osc.type = 'sine';
                 osc.frequency.setValueAtTime(300, now);
                 osc.frequency.exponentialRampToValueAtTime(800, now + 0.35);
-
                 gain.gain.setValueAtTime(0.35, now);
                 gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
-
-                osc.start(now);
-                osc.stop(now + 0.35);
-
+                osc.start(now); osc.stop(now + 0.35);
             } else if (type === 'damage') {
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-
+                osc.connect(gain); gain.connect(audioCtx.destination);
                 osc.type = 'square';
                 osc.frequency.setValueAtTime(180, now);
                 osc.frequency.exponentialRampToValueAtTime(40, now + 0.3);
-
                 gain.gain.setValueAtTime(0.5, now);
                 gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-
-                osc.start(now);
-                osc.stop(now + 0.3);
+                osc.start(now); osc.stop(now + 0.3);
             }
         }
 
-        // Helper function to draw Green Metal Geocache Container with GC markings
         function drawAmmoBox(targetCtx, x, y, width, height) {
             targetCtx.save();
-            
             targetCtx.fillStyle = '#4a5d31';
             targetCtx.fillRect(x, y, width, height);
-
             targetCtx.strokeStyle = '#2b381b';
             targetCtx.lineWidth = Math.max(1, width * 0.03);
             targetCtx.strokeRect(x, y, width, height);
-
             targetCtx.fillStyle = '#3a4a26';
             targetCtx.fillRect(x - width * 0.03, y, width * 1.06, height * 0.25);
             targetCtx.strokeRect(x - width * 0.03, y, width * 1.06, height * 0.25);
-
             targetCtx.fillStyle = '#7f8c8d';
             targetCtx.fillRect(x + width * 0.42, y + height * 0.18, width * 0.16, height * 0.25);
             targetCtx.strokeStyle = '#2c3e50';
             targetCtx.strokeRect(x + width * 0.42, y + height * 0.18, width * 0.16, height * 0.25);
-
             targetCtx.strokeStyle = '#2b381b';
             targetCtx.lineWidth = Math.max(1, width * 0.05);
             targetCtx.beginPath();
@@ -637,13 +624,11 @@
             targetCtx.lineTo(x + width * 0.7, y - height * 0.1);
             targetCtx.lineTo(x + width * 0.7, y);
             targetCtx.stroke();
-
             targetCtx.fillStyle = '#f1c40f';
             targetCtx.font = `bold ${Math.floor(height * 0.38)}px Arial`;
             targetCtx.textAlign = 'center';
             targetCtx.textBaseline = 'middle';
             targetCtx.fillText('GC', x + width / 2, y + height * 0.65);
-
             targetCtx.restore();
         }
 
@@ -680,18 +665,14 @@
             if (grassPatternObj) {
                 ctx.save();
                 ctx.scale(GRASS_SCALE, GRASS_SCALE);
-                
                 const tileWidth = (images.grassPattern.width || 905);
                 const tileHeight = (images.grassPattern.height || 588);
-                
                 const offsetX = -(((gx * canvas.width) / GRASS_SCALE) % tileWidth);
                 const offsetY = -(((gy * canvas.height) / GRASS_SCALE) % tileHeight);
-                
                 ctx.translate(offsetX, offsetY);
                 ctx.fillStyle = grassPatternObj;
                 ctx.fillRect(-offsetX, -offsetY, canvas.width / GRASS_SCALE, canvas.height / GRASS_SCALE);
                 ctx.restore();
-
                 ctx.fillStyle = 'rgba(10, 35, 10, 0.45)';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
             } else {
@@ -720,10 +701,12 @@
         const mobileBushBtn = document.getElementById('mobile-bush-btn');
         const mobileTurtleBtn = document.getElementById('mobile-turtle-btn');
         const mobileSwordBtn = document.getElementById('mobile-sword-btn');
+        const potionPrompt = document.getElementById('potion-prompt');
         const cacheModal = document.getElementById('cache-modal');
         const trackableOverlay = document.getElementById('trackable-overlay');
         const questModal = document.getElementById('quest-modal');
         const gameOverModal = document.getElementById('game-over-modal');
+        const potionModal = document.getElementById('potion-modal');
         const modalActions = document.getElementById('modal-actions');
         const modalTitle = document.getElementById('modal-title');
         const stealWarning = document.getElementById('steal-warning');
@@ -739,7 +722,6 @@
 
         const INTERACTION_DISTANCE = 55;
 
-        // Quests State (Split into 3 Quests)
         const questState = {
             q1Completed: false,
             cachesFound: 0,
@@ -805,6 +787,20 @@
                 const iconSpan = slot.querySelector('.item-icon');
                 iconSpan.textContent = item ? item.icon : "";
             });
+
+            // Update action UI when holding a potion
+            const currentItem = inventory[selectedSlotIndex];
+            if (currentItem && (currentItem.type === 'hp_potion' || currentItem.type === 'overheal_potion')) {
+                potionPrompt.style.display = 'block';
+                if (isMobile) {
+                    mobileSwordBtn.textContent = '🧪';
+                }
+            } else {
+                potionPrompt.style.display = 'none';
+                if (isMobile) {
+                    mobileSwordBtn.textContent = '🗡️';
+                }
+            }
         }
 
         function selectSlot(index) {
@@ -913,79 +909,51 @@
 
         class DecorativeTurtle {
             constructor(x, y, minX, maxX) {
-                this.x = x;
-                this.y = y;
-                this.minX = minX;
-                this.maxX = maxX;
-                this.speed = 25;
-                this.direction = 1;
-                this.radius = 16;
-                this.emoji = '🐢';
+                this.x = x; this.y = y;
+                this.minX = minX; this.maxX = maxX;
+                this.speed = 25; this.direction = 1;
+                this.radius = 16; this.emoji = '🐢';
             }
 
             update(deltaTime) {
                 this.x += this.speed * this.direction * deltaTime;
-
-                if (this.x >= this.maxX) {
-                    this.x = this.maxX;
-                    this.direction = -1;
-                } else if (this.x <= this.minX) {
-                    this.x = this.minX;
-                    this.direction = 1;
-                }
+                if (this.x >= this.maxX) { this.x = this.maxX; this.direction = -1; }
+                else if (this.x <= this.minX) { this.x = this.minX; this.direction = 1; }
             }
 
             draw() {
                 ctx.save();
                 ctx.translate(this.x, this.y);
-
-                if (this.direction === -1) {
-                    ctx.scale(-1, 1);
-                }
-
+                if (this.direction === -1) ctx.scale(-1, 1);
                 ctx.font = '26px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                 ctx.fillText(this.emoji, 0, 0);
-
                 ctx.restore();
             }
         }
 
         class Rock {
-            constructor(x, y) {
-                this.x = x; this.y = y;
-                this.radius = 22;
-            }
-
+            constructor(x, y) { this.x = x; this.y = y; this.radius = 22; }
             draw() {
                 const img = images.rockSheet;
                 if (img && img.complete && img.naturalWidth !== 0) {
                     ctx.drawImage(img, this.x - 30, this.y - 25, 60, 50);
                 } else {
                     ctx.fillStyle = '#7f8c8d';
-                    ctx.beginPath();
-                    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-                    ctx.fill();
+                    ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.fill();
                 }
             }
         }
 
         class Tree {
-            constructor(x, y) {
-                this.x = x; this.y = y;
-                this.trunkRadius = 14;
-            }
-
+            constructor(x, y) { this.x = x; this.y = y; this.trunkRadius = 14; }
             drawCanopy() {
                 const img = images.pineTreeSheet;
                 if (img && img.complete && img.naturalWidth !== 0) {
                     ctx.drawImage(img, this.x - 40, this.y - 80, 80, 95);
                 } else {
                     ctx.fillStyle = 'rgba(46, 125, 50, 0.85)';
-                    ctx.beginPath();
-                    ctx.arc(this.x, this.y - 12, 40, 0, Math.PI * 2);
-                    ctx.fill();
+                    ctx.beginPath(); ctx.arc(this.x, this.y - 12, 40, 0, Math.PI * 2); ctx.fill();
                 }
             }
         }
@@ -993,12 +961,9 @@
         class Monster {
             constructor(x, y) {
                 this.x = x; this.y = y;
-                this.radius = 18;
-                this.speed = 110;
-                this.detectionRange = 180;
-                this.isChasing = false;
-                this.alive = true;
-                this.facingLeft = true;
+                this.radius = 18; this.speed = 110;
+                this.detectionRange = 180; this.isChasing = false;
+                this.alive = true; this.facingLeft = true;
                 this.sprite = '🦖';
             }
 
@@ -1008,9 +973,7 @@
                 if (dist < this.detectionRange) {
                     this.isChasing = true;
                     const angle = Math.atan2(player.y - this.y, player.x - this.x);
-                    
                     this.facingLeft = (player.x < this.x);
-
                     this.x += Math.cos(angle) * this.speed * deltaTime;
                     this.y += Math.sin(angle) * this.speed * deltaTime;
                 } else {
@@ -1019,29 +982,21 @@
 
                 if (dist < this.radius + player.radius) {
                     let touchingSword = false;
-
                     if (player.isAttacking) {
                         const progress = 1 - (player.attackTimer / ATTACK_DURATION);
-                        const startAngle = -Math.PI / 2;
-                        const endAngle = Math.PI / 2;
-                        const swordAngle = startAngle + (progress * (endAngle - startAngle));
-                        
+                        const swordAngle = -Math.PI / 2 + (progress * Math.PI);
                         const dir = player.facingLeft ? -1 : 1;
                         const swordTipX = player.x + Math.cos(swordAngle) * 42 * dir;
                         const swordTipY = player.y + Math.sin(swordAngle) * 42;
 
-                        const distToSword = Math.hypot(this.x - swordTipX, this.y - swordTipY);
-                        if (distToSword < this.radius + 20) {
+                        if (Math.hypot(this.x - swordTipX, this.y - swordTipY) < this.radius + 20) {
                             touchingSword = true;
                         }
                     }
 
                     if (!touchingSword && player.invulnerableTimer <= 0) {
-                        if (player.yellowHearts > 0) {
-                            player.yellowHearts--;
-                        } else {
-                            player.health--;
-                        }
+                        if (player.yellowHearts > 0) player.yellowHearts--;
+                        else player.health--;
 
                         player.invulnerableTimer = 1.0;
                         playSound('damage');
@@ -1056,27 +1011,18 @@
 
             draw() {
                 if (!this.alive) return;
-
                 ctx.save();
-                
                 if (this.isChasing) {
                     ctx.fillStyle = '#e74c3c';
                     ctx.font = 'bold 22px Arial';
                     ctx.textAlign = 'center';
                     ctx.fillText('!', this.x, this.y - 28);
                 }
-
                 ctx.translate(this.x, this.y);
-
-                if (!this.facingLeft) {
-                    ctx.scale(-1, 1);
-                }
-
+                if (!this.facingLeft) ctx.scale(-1, 1);
                 ctx.font = '36px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                 ctx.fillText(this.sprite, 0, 0);
-
                 ctx.restore();
             }
         }
@@ -1126,19 +1072,13 @@
         function triggerQuestBanner(questTitle, questCode) {
             bannerQuestTitle.textContent = questTitle;
             bannerQuestCoords.textContent = questCode;
-
             questBannerContainer.style.display = 'flex';
             playSound('coin');
 
-            setTimeout(() => {
-                questBannerContainer.classList.add('slide-in');
-            }, 50);
-
+            setTimeout(() => { questBannerContainer.classList.add('slide-in'); }, 50);
             setTimeout(() => {
                 questBannerContainer.classList.remove('slide-in');
-                setTimeout(() => {
-                    questBannerContainer.style.display = 'none';
-                }, 600);
+                setTimeout(() => { questBannerContainer.style.display = 'none'; }, 600);
             }, 4500);
         }
 
@@ -1146,10 +1086,8 @@
             player.health = player.maxHealth;
             player.yellowHearts = 0;
             player.invulnerableTimer = 0;
-            player.gridX = 0;
-            player.gridY = 0;
-            player.x = canvas.width / 2;
-            player.y = canvas.height / 2;
+            player.gridX = 0; player.gridY = 0;
+            player.x = canvas.width / 2; player.y = canvas.height / 2;
             player.isAttacking = false;
 
             questState.cachesFound = 0;
@@ -1176,9 +1114,16 @@
             gameOverModal.style.display = 'none';
         }
 
-        function triggerAttack() {
+        function triggerActionOrAttack() {
             if (player.health <= 0 && player.yellowHearts <= 0) return;
             const selectedItem = inventory[selectedSlotIndex];
+
+            // If equipped with potion, prompt confirmation modal
+            if (selectedItem && (selectedItem.type === 'hp_potion' || selectedItem.type === 'overheal_potion')) {
+                openPotionConfirmation(selectedItem);
+                return;
+            }
+
             if (!selectedItem || selectedItem.type !== "weapon") return;
 
             if (player.isAttacking) return;
@@ -1198,6 +1143,45 @@
                     playSound('hit');
                 }
             });
+        }
+
+        function openPotionConfirmation(item) {
+            const titleEl = document.getElementById('potion-modal-title');
+            const descEl = document.getElementById('potion-modal-desc');
+
+            if (item.type === 'hp_potion') {
+                titleEl.textContent = "Drink Health Potion? 🧪";
+                descEl.textContent = "Would you like to drink this Health Potion to restore 1 Heart?";
+            } else if (item.type === 'overheal_potion') {
+                titleEl.textContent = "Drink Overheal Potion? 🏺";
+                descEl.textContent = "Would you like to drink this Overheal Potion to gain +3 Golden Hearts?";
+            }
+
+            potionModal.style.display = 'block';
+        }
+
+        function confirmDrinkPotion() {
+            const item = inventory[selectedSlotIndex];
+            if (!item) return;
+
+            if (item.type === 'hp_potion') {
+                if (player.health < player.maxHealth) {
+                    player.health++;
+                    updateHeartsUI();
+                    playSound('heal');
+                    inventory[selectedSlotIndex] = null;
+                } else {
+                    alert("Health is already full!");
+                }
+            } else if (item.type === 'overheal_potion') {
+                player.yellowHearts += 3;
+                updateHeartsUI();
+                playSound('overheal');
+                inventory[selectedSlotIndex] = null;
+            }
+
+            updateHotbarUI();
+            closeModal('potion-modal');
         }
 
         function handleTurtleInteractOrPlace() {
@@ -1246,7 +1230,9 @@
             } else if (key === 'f') {
                 handleTurtleInteractOrPlace();
             } else if (key === 'e') {
-                if (questModal.style.display === 'block') {
+                if (potionModal.style.display === 'block') {
+                    closeModal('potion-modal');
+                } else if (questModal.style.display === 'block') {
                     closeModal('quest-modal');
                 } else if (trackableOverlay.style.display === 'flex') {
                     closeModal('trackable-overlay');
@@ -1270,7 +1256,7 @@
             }
 
             if (e.code === 'Space') {
-                triggerAttack();
+                triggerActionOrAttack();
             }
         });
 
@@ -1282,7 +1268,7 @@
 
         mobileSwordBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            triggerAttack();
+            triggerActionOrAttack();
         });
 
         if (isMobile) {
@@ -1337,7 +1323,6 @@
             document.getElementById('q2-monsters').textContent = questState.monstersDefeated;
             document.getElementById('q3-trackables').textContent = questState.trackablesRelocated;
 
-            // Quest 1 Evaluation
             const q1Code = document.getElementById('q1-code');
             if (questState.cachesFound >= questState.cachesTarget) {
                 q1Code.textContent = questState.code1;
@@ -1351,7 +1336,6 @@
                 q1Code.classList.add('code-locked');
             }
 
-            // Quest 2 Evaluation
             const q2Code = document.getElementById('q2-code');
             if (questState.monstersDefeated >= questState.monstersTarget) {
                 q2Code.textContent = questState.code2;
@@ -1365,7 +1349,6 @@
                 q2Code.classList.add('code-locked');
             }
 
-            // Quest 3 Evaluation
             const q3Code = document.getElementById('q3-code');
             if (questState.trackablesRelocated >= questState.trackablesTarget) {
                 q3Code.textContent = questState.code3;
@@ -1477,7 +1460,6 @@
                     };
                     modalActions.appendChild(dropTrackBtn);
                 }
-
             }
 
             if (bush.hasPotion && !bush.potionTaken) {
@@ -1490,13 +1472,16 @@
                 const potionBtn = document.createElement('button');
                 potionBtn.className = "modal-btn";
                 potionBtn.style.background = "#27ae60";
-                potionBtn.textContent = "🧪 Drink Health Potion (+1 HP)";
+                potionBtn.textContent = "🧪 Take Health Potion";
                 potionBtn.onclick = () => {
-                    bush.potionTaken = true;
-                    if (player.health < player.maxHealth) {
-                        player.health++;
-                        updateHeartsUI();
-                        playSound('heal');
+                    const emptyIndex = inventory.findIndex(slot => slot === null);
+                    if (emptyIndex !== -1) {
+                        inventory[emptyIndex] = { name: "Health Potion", type: "hp_potion", icon: "🧪" };
+                        bush.potionTaken = true;
+                        playSound('coin');
+                        updateHotbarUI();
+                    } else {
+                        alert("Inventory Full!");
                     }
                     closeModal('cache-modal');
                 };
@@ -1513,12 +1498,17 @@
                 const overhealBtn = document.createElement('button');
                 overhealBtn.className = "modal-btn";
                 overhealBtn.style.background = "#f39c12";
-                overhealBtn.textContent = "🧪 Drink Overheal Potion (+3 💛 Hearts)";
+                overhealBtn.textContent = "🏺 Take Overheal Potion (+3 💛)";
                 overhealBtn.onclick = () => {
-                    bush.overhealTaken = true;
-                    player.yellowHearts += 3;
-                    updateHeartsUI();
-                    playSound('overheal');
+                    const emptyIndex = inventory.findIndex(slot => slot === null);
+                    if (emptyIndex !== -1) {
+                        inventory[emptyIndex] = { name: "Overheal Potion", type: "overheal_potion", icon: "🏺" };
+                        bush.overhealTaken = true;
+                        playSound('coin');
+                        updateHotbarUI();
+                    } else {
+                        alert("Inventory Full!");
+                    }
                     closeModal('cache-modal');
                 };
                 modalActions.appendChild(overhealBtn);
@@ -1600,11 +1590,8 @@
 
             player.isMoving = (dx !== 0 || dy !== 0);
 
-            if (dx < 0) {
-                player.facingLeft = true;
-            } else if (dx > 0) {
-                player.facingLeft = false;
-            }
+            if (dx < 0) player.facingLeft = true;
+            else if (dx > 0) player.facingLeft = false;
 
             player.animTimer += deltaTime;
             if (player.isMoving) {
@@ -1696,7 +1683,6 @@
 
             if (player.isAttacking) {
                 const progress = 1 - (player.attackTimer / ATTACK_DURATION);
-
                 const startAngle = -Math.PI / 2;
                 const endAngle = Math.PI / 2;
                 const currentAngle = startAngle + (progress * (endAngle - startAngle));
