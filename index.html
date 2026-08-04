@@ -1,1763 +1,458 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Cache Hunter</title>
-    <style>
-        * {
-            box-sizing: border-box;
-            user-select: none;
-            -webkit-user-select: none;
-            touch-action: none;
-        }
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: #111111;
-            color: #ffffff;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            overflow: hidden;
-        }
-        #game-container {
-            position: relative;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
-            border-radius: 12px;
-            overflow: hidden;
-        }
-        canvas {
-            display: block;
-            background-color: #1b3815;
-            image-rendering: pixelated;
-        }
-        #ui {
-            position: absolute;
-            top: 15px;
-            left: 15px;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 10px 18px;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: bold;
-            letter-spacing: 0.5px;
-            backdrop-filter: blur(4px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            z-index: 10;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-        .sector-tag {
-            color: #f1c40f;
-        }
-        .hearts-display {
-            font-size: 18px;
-            letter-spacing: 2px;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cache Hunter - Trackable Quest</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #0f172a;
+      color: #f8fafc;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
+    }
 
-        #quest-btn {
-            background: #8e44ad;
-            color: white;
-            border: 1px solid #9b59b6;
-            padding: 4px 12px;
-            border-radius: 6px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        #quest-btn:hover {
-            background: #9b59b6;
-        }
-        
-        #hotbar {
-            position: absolute;
-            bottom: 15px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 8px;
-            background: rgba(0, 0, 0, 0.75);
-            padding: 6px;
-            border-radius: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            z-index: 15;
-            backdrop-filter: blur(4px);
-        }
-        .slot {
-            width: 50px;
-            height: 50px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 6px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            font-size: 10px;
-            text-align: center;
-            position: relative;
-            cursor: pointer;
-            pointer-events: auto;
-        }
-        .slot.selected {
-            border-color: #f1c40f;
-            background: rgba(241, 196, 15, 0.2);
-        }
-        .slot-num {
-            position: absolute;
-            top: 2px;
-            left: 4px;
-            font-size: 10px;
-            color: #aaa;
-        }
-        .item-icon {
-            font-size: 18px;
-            margin-top: 4px;
-        }
+    /* Top HUD Header */
+    #hud {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 800px;
+      padding: 12px 20px;
+      background: #1e293b;
+      border-radius: 12px 12px 0 0;
+      border: 2px solid #334155;
+      border-bottom: none;
+    }
 
-        .action-btn {
-            display: none;
-            position: absolute;
-            transform: translate(-50%, -100%);
-            background: #f39c12;
-            color: white;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-weight: bold;
-            font-size: 14px;
-            border: 2px solid white;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-            pointer-events: auto;
-            z-index: 25;
-            cursor: pointer;
-        }
+    .hud-title {
+      font-size: 20px;
+      font-weight: bold;
+      color: #f59e0b;
+    }
 
-        #mobile-turtle-btn {
-            background: #27ae60;
-        }
+    .hud-stats {
+      display: flex;
+      gap: 20px;
+      font-size: 14px;
+    }
 
-        #mobile-sword-btn {
-            display: none;
-            position: absolute;
-            bottom: 25px;
-            right: 25px;
-            width: 65px;
-            height: 65px;
-            background: rgba(231, 76, 60, 0.85);
-            border: 3px solid white;
-            border-radius: 50%;
-            color: white;
-            font-size: 26px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            z-index: 25;
-            cursor: pointer;
-        }
+    .badge {
+      background: #334155;
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1px solid #475569;
+    }
 
-        #potion-prompt {
-            display: none;
-            position: absolute;
-            bottom: 80px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(46, 204, 113, 0.9);
-            color: white;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-weight: bold;
-            font-size: 14px;
-            border: 2px solid white;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-            z-index: 20;
-            pointer-events: none;
-            animation: bounce 1s infinite alternate;
-        }
-        @keyframes bounce {
-            from { transform: translateX(-50%) translateY(0); }
-            to { transform: translateX(-50%) translateY(-5px); }
-        }
+    /* Main Game Canvas */
+    #gameCanvas {
+      background-color: #15803d;
+      border: 2px solid #334155;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    }
 
-        .game-modal {
-            display: none;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(20, 20, 20, 0.95);
-            border: 2px solid #f1c40f;
-            border-radius: 12px;
-            padding: 20px;
-            text-align: center;
-            z-index: 30;
-            box-shadow: 0 0 20px rgba(0,0,0,0.8);
-            min-width: 320px;
-            pointer-events: auto;
-        }
-        .game-modal h3 {
-            margin: 0 0 15px 0;
-            color: #f1c40f;
-        }
-        .modal-btn {
-            display: block;
-            width: 100%;
-            padding: 10px;
-            margin: 8px 0;
-            background: #34495e;
-            color: white;
-            border: 1px solid #5d6d7e;
-            border-radius: 6px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        .modal-btn.confirm {
-            background: #27ae60;
-            border-color: #2ecc71;
-        }
-        .modal-btn.warning {
-            background: #e74c3c;
-        }
+    /* Bottom Control Bar */
+    #instructions {
+      width: 800px;
+      padding: 10px;
+      background: #1e293b;
+      border-radius: 0 0 12px 12px;
+      border: 2px solid #334155;
+      border-top: none;
+      text-align: center;
+      font-size: 13px;
+      color: #94a3b8;
+    }
 
-        #trackable-overlay {
-            display: none;
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.8);
-            z-index: 50;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-            pointer-events: auto;
-        }
-        .sunburst-container {
-            position: relative;
-            width: 260px;
-            height: 260px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .sunburst {
-            position: absolute;
-            width: 260px;
-            height: 260px;
-            background: repeating-conic-gradient(
-                from 0deg,
-                rgba(241, 196, 15, 0.6) 0deg 15deg,
-                transparent 15deg 30deg
-            );
-            border-radius: 50%;
-            animation: rotateRays 8s linear infinite;
-        }
-        @keyframes rotateRays {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-        .trackable-display-icon {
-            font-size: 80px;
-            z-index: 2;
-            filter: drop-shadow(0 0 10px #f1c40f);
-        }
+    /* --- CENTERED TRACKABLE POPUP UI --- */
+    .trackable-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(4px);
+      display: flex;
+      justify-content: center; /* Center horizontally */
+      align-items: center;     /* Center vertically */
+      z-index: 9999;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease-in-out;
+    }
 
-        #quest-banner-container {
-            display: none;
-            position: absolute;
-            bottom: -220px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 480px;
-            height: 220px;
-            z-index: 60;
-            pointer-events: none;
-            align-items: center;
-            justify-content: center;
-            transition: bottom 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        #quest-banner-container.slide-in {
-            bottom: 40px;
-        }
+    .trackable-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
 
-        .banner-sunburst-bg {
-            position: absolute;
-            width: 320px;
-            height: 320px;
-            background: repeating-conic-gradient(
-                from 0deg,
-                rgba(241, 196, 15, 0.45) 0deg 15deg,
-                transparent 15deg 30deg
-            );
-            border-radius: 50%;
-            animation: rotateRays 6s linear infinite;
-            z-index: 1;
-        }
+    .trackable-modal {
+      background: #1e293b;
+      border: 3px solid #f59e0b;
+      border-radius: 16px;
+      padding: 24px;
+      width: 340px;
+      text-align: center;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+      transform: scale(0.85);
+      transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
 
-        .ribbon-banner {
-            position: relative;
-            z-index: 2;
-            width: 420px;
-            background: #e74c3c;
-            color: #ffffff;
-            padding: 16px 20px;
-            text-align: center;
-            font-weight: bold;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.6);
-            clip-path: polygon(
-                25px 0%, 100% 0%, 
-                calc(100% - 25px) 50%, 100% 100%, 
-                25px 100%, 0% 50%
-            );
-            border-top: 3px solid #f1c40f;
-            border-bottom: 3px solid #f1c40f;
-        }
+    .trackable-overlay.active .trackable-modal {
+      transform: scale(1);
+    }
 
-        .ribbon-header {
-            font-size: 12px;
-            color: #f1c40f;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            margin-bottom: 2px;
-        }
-        .ribbon-title {
-            font-size: 22px;
-            color: #ffffff;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-            margin-bottom: 6px;
-        }
-        .ribbon-coords {
-            font-size: 15px;
-            font-family: monospace;
-            background: rgba(0,0,0,0.35);
-            color: #2ecc71;
-            padding: 4px 10px;
-            border-radius: 4px;
-            display: inline-block;
-            letter-spacing: 1px;
-        }
+    .trackable-title {
+      font-size: 20px;
+      font-weight: bold;
+      color: #f59e0b;
+      margin: 0 0 8px 0;
+      text-transform: uppercase;
+    }
 
-        #game-over-modal { border-color: #e74c3c; }
-        #game-over-modal h3 { color: #e74c3c; font-size: 28px; }
+    .trackable-icon {
+      font-size: 54px;
+      margin: 12px 0;
+      display: inline-block;
+      animation: float 2s ease-in-out infinite;
+    }
 
-        .quest-card {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 8px;
-            padding: 12px;
-            margin-bottom: 10px;
-            text-align: left;
-        }
-        .quest-title { font-weight: bold; font-size: 14px; color: #e67e22; }
-        .quest-progress { font-size: 13px; margin: 4px 0; color: #ccc; }
-        .code-box {
-            font-family: monospace;
-            background: #000;
-            color: #2ecc71;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-weight: bold;
-            display: inline-block;
-            margin-top: 4px;
-            letter-spacing: 1px;
-        }
-        .code-locked { color: #7f8c8d; }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-6px); }
+    }
 
-        #steal-warning {
-            display: none;
-            position: absolute;
-            top: 70px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #e74c3c;
-            color: white;
-            padding: 10px 20px;
-            font-weight: bold;
-            font-size: 18px;
-            border-radius: 8px;
-            border: 2px solid white;
-            box-shadow: 0 0 15px rgba(231, 76, 60, 0.8);
-            z-index: 40;
-            animation: pulse 0.8s infinite alternate;
-        }
-        @keyframes pulse {
-            from { transform: translateX(-50%) scale(1); }
-            to { transform: translateX(-50%) scale(1.05); }
-        }
+    .trackable-desc {
+      font-size: 14px;
+      color: #cbd5e1;
+      margin-bottom: 20px;
+      line-height: 1.4;
+    }
 
-        #cache-canvas-preview {
-            margin: 10px auto 15px auto;
-            display: block;
-            background: rgba(0,0,0,0.3);
-            border-radius: 8px;
-        }
-    </style>
+    .trackable-btn-group {
+      display: flex;
+      gap: 10px;
+    }
+
+    .trackable-btn {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .btn-claim {
+      background: #10b981;
+      color: #022c22;
+    }
+    .btn-claim:hover { background: #34d399; }
+
+    .btn-deposit {
+      background: #3b82f6;
+      color: #1e3a8a;
+    }
+    .btn-deposit:hover { background: #60a5fa; }
+
+    .btn-close {
+      background: #64748b;
+      color: #ffffff;
+    }
+    .btn-close:hover { background: #94a3b8; }
+  </style>
 </head>
 <body>
 
-    <div id="game-container">
-        <canvas id="gameCanvas" width="800" height="600"></canvas>
-        
-        <div id="ui">
-            <div id="hearts-container" class="hearts-display">❤️❤️❤️</div>
-            <div>Screen: <span id="sector" class="sector-tag">X: 0, Y: 0</span></div>
-            <button id="quest-btn" onclick="toggleQuestModal()">QUESTS [Q]</button>
-        </div>
-
-        <div id="steal-warning">⚠️ DON'T STEAL CACHES! ⚠️</div>
-        <div id="potion-prompt">Press [SPACE] or Click to Drink Potion</div>
-
-        <button id="mobile-bush-btn" class="action-btn">SEARCH [E]</button>
-        <button id="mobile-turtle-btn" class="action-btn">PICK UP [F]</button>
-        <div id="mobile-sword-btn">🗡️</div>
-
-        <div id="hotbar">
-            <div class="slot selected" onclick="selectSlot(0)"><span class="slot-num">1</span><span class="item-icon">🗡️</span></div>
-            <div class="slot" onclick="selectSlot(1)"><span class="slot-num">2</span><span class="item-icon"></span></div>
-            <div class="slot" onclick="selectSlot(2)"><span class="slot-num">3</span><span class="item-icon"></span></div>
-            <div class="slot" onclick="selectSlot(3)"><span class="slot-num">4</span><span class="item-icon"></span></div>
-            <div class="slot" onclick="selectSlot(4)"><span class="slot-num">5</span><span class="item-icon"></span></div>
-        </div>
-
-        <div id="potion-modal" class="game-modal">
-            <h3 id="potion-modal-title">Drink Potion?</h3>
-            <p id="potion-modal-desc" style="color: #ccc; font-size: 14px; margin-bottom: 15px;">Would you like to drink this Health Potion?</p>
-            <button class="modal-btn confirm" onclick="confirmDrinkPotion()">Yes, Drink It!</button>
-            <button class="modal-btn warning" onclick="closeModal('potion-modal')">No, Cancel</button>
-        </div>
-
-        <div id="quest-banner-container">
-            <div class="banner-sunburst-bg"></div>
-            <div class="ribbon-banner">
-                <div class="ribbon-header">🏆 QUEST COMPLETED! 🏆</div>
-                <div id="banner-quest-title" class="ribbon-title">Master Geocacher!</div>
-                <div id="banner-quest-coords" class="ribbon-coords">CACHE-9921</div>
-            </div>
-        </div>
-
-        <div id="cache-modal" class="game-modal">
-            <h3 id="modal-title">Geocache Found!</h3>
-            <canvas id="cache-canvas-preview" width="100" height="70"></canvas>
-            <div id="modal-actions"></div>
-            <button class="modal-btn warning" onclick="closeModal('cache-modal')">Close [E]</button>
-        </div>
-
-        <div id="trackable-overlay" class="game-modal">
-            <div class="sunburst-container">
-                <div class="sunburst"></div>
-                <div id="trackable-display-icon" class="trackable-display-icon">🏷️</div>
-            </div>
-            <h2 style="color: #f1c40f; margin-top: 15px;">TRACKABLE DISCOVERED!</h2>
-            <button id="claim-trackable-btn" class="modal-btn" style="width: 200px; margin-top: 10px;" onclick="claimTrackable()">CLAIM TRACKABLE [T]</button>
-            <button class="modal-btn warning" style="width: 200px;" onclick="closeModal('trackable-overlay')">Close [E]</button>
-        </div>
-
-        <div id="quest-modal" class="game-modal">
-            <h3>📜 Active Quests</h3>
-            <div class="quest-card">
-                <div class="quest-title">Quest 1: Master Geocacher!</div>
-                <div class="quest-progress">• Find 20 Caches (<span id="q1-count">0</span> / 20)</div>
-                <div>Code 1: <span id="q1-code" class="code-box code-locked">🔒 LOCKED</span></div>
-            </div>
-            <div class="quest-card">
-                <div class="quest-title">Quest 2: Monster Hunter!</div>
-                <div class="quest-progress">• Defeat 10 Monsters (<span id="q2-monsters">0</span> / 10)</div>
-                <div>Code 2: <span id="q2-code" class="code-box code-locked">🔒 LOCKED</span></div>
-            </div>
-            <div class="quest-card">
-                <div class="quest-title">Quest 3: Trackable Lover</div>
-                <div class="quest-progress">• Move 5 Trackables to new Caches (<span id="q3-trackables">0</span> / 5)</div>
-                <div>Code 3: <span id="q3-code" class="code-box code-locked">🔒 LOCKED</span></div>
-            </div>
-            <button class="modal-btn warning" onclick="closeModal('quest-modal')">Close [Q / E]</button>
-        </div>
-
-        <div id="game-over-modal" class="game-modal">
-            <h3>💀 GAME OVER</h3>
-            <p style="color: #ccc; font-size: 14px;">You ran out of health!</p>
-            <button class="modal-btn warning" onclick="respawnPlayer()">RESPAWN & RESET WORLD</button>
-        </div>
+  <!-- Game HUD Header -->
+  <div id="hud">
+    <div class="hud-title">🧭 CACHE HUNTER</div>
+    <div class="hud-stats">
+      <div class="badge">🎒 Inventory: <span id="inv-count">0</span> Trackable(s)</div>
+      <div class="badge" style="border-color: #f59e0b;">🏆 Quest Progress: <span id="quest-count">0</span>/5 Relocated</div>
     </div>
+  </div>
 
-    <script>
-        const TRACKABLE_EMOJIS = ['🤣', '😎', '😀', '😅', '😂', '😑', '🤨', '😭', '🤪'];
+  <!-- Main Game World Area -->
+  <canvas id="gameCanvas" width="800" height="500"></canvas>
 
-        function getRandomTrackableEmoji() {
-            return TRACKABLE_EMOJIS[Math.floor(Math.random() * TRACKABLE_EMOJIS.length)];
+  <div id="instructions">
+    Use <b>WASD</b> or <b>Arrow Keys</b> to Move. Walk up to a Geocache or Bush and press <b>E</b> or <b>SPACE</b> to search!
+  </div>
+
+  <!-- CENTERED POPUP MODAL OVERLAY -->
+  <div id="trackable-overlay" class="trackable-overlay">
+    <div class="trackable-modal">
+      <h2 id="modal-title" class="trackable-title">Trackable Discovered!</h2>
+      <div id="modal-emoji" class="trackable-icon">🤣</div>
+      <p id="modal-text" class="trackable-desc">You found a trackable item! Would you like to pick it up?</p>
+      <div id="modal-buttons" class="trackable-btn-group">
+        <button id="btn-primary" class="trackable-btn btn-claim">Claim Trackable</button>
+        <button id="btn-secondary" class="trackable-btn btn-close">Leave</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // --- GAME ENGINE STATE ---
+    const TILE_SIZE = 40;
+    const GRID_SIZE = 20; // 20x20 Grid World (800x800 total, viewport scrolling)
+    
+    const EMOJIS = ['🤣', '😎', '😀', '⭐', '💎'];
+
+    let player = {
+      x: 400,
+      y: 250,
+      size: 26,
+      speed: 4,
+      inventory: []
+    };
+
+    let quest = {
+      relocatedCount: 0,
+      targetGoal: 5,
+      completed: false
+    };
+
+    let keys = {};
+    let geocaches = [];
+    let modalOpen = false;
+    let nearbyCache = null;
+
+    // --- WORLD GENERATION ---
+    function initWorld() {
+      geocaches = [];
+      
+      // Spawn 10 Caches across the map
+      for (let i = 0; i < 10; i++) {
+        const hasTrackable = i < 6; // First 6 start with trackables inside
+        geocaches.push({
+          id: i,
+          x: Math.floor(Math.random() * 18 + 1) * TILE_SIZE,
+          y: Math.floor(Math.random() * 10 + 1) * TILE_SIZE,
+          size: 30,
+          trackable: hasTrackable ? {
+            id: 't_' + i,
+            emoji: EMOJIS[i % EMOJIS.length],
+            originCacheId: i
+          } : null
+        });
+      }
+    }
+
+    // --- INPUT HANDLING ---
+    window.addEventListener('keydown', (e) => {
+      keys[e.key.toLowerCase()] = true;
+      if ((e.key === 'e' || e.key === 'E' || e.code === 'Space') && !modalOpen) {
+        interactWithCache();
+      }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      keys[e.key.toLowerCase()] = false;
+    });
+
+    // --- MOVEMENT & LOGIC ---
+    function update() {
+      if (modalOpen) return;
+
+      let dx = 0;
+      let dy = 0;
+
+      if (keys['w'] || keys['arrowup']) dy -= player.speed;
+      if (keys['s'] || keys['arrowdown']) dy += player.speed;
+      if (keys['a'] || keys['arrowleft']) dx -= player.speed;
+      if (keys['d'] || keys['arrowright']) dx += player.speed;
+
+      // Keep within canvas bounds
+      player.x = Math.max(20, Math.min(canvas.width - 20, player.x + dx));
+      player.y = Math.max(20, Math.min(canvas.height - 20, player.y + dy));
+
+      // Check proximity to caches
+      nearbyCache = null;
+      for (let cache of geocaches) {
+        const dist = Math.hypot(player.x - (cache.x + 15), player.y - (cache.y + 15));
+        if (dist < 35) {
+          nearbyCache = cache;
+          break;
         }
+      }
+    }
 
-        const AudioCtx = window.AudioContext || window.webkitAudioContext;
-        let audioCtx = null;
+    // --- INTERACTION LOGIC ---
+    function interactWithCache() {
+      if (!nearbyCache) return;
 
-        function playSound(type) {
-            if (!audioCtx) audioCtx = new AudioCtx();
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-            const now = audioCtx.currentTime;
+      const overlay = document.getElementById('trackable-overlay');
+      const modalTitle = document.getElementById('modal-title');
+      const modalEmoji = document.getElementById('modal-emoji');
+      const modalText = document.getElementById('modal-text');
+      const btnPrimary = document.getElementById('btn-primary');
+      const btnSecondary = document.getElementById('btn-secondary');
 
-            if (type === 'sword') {
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.connect(gain); gain.connect(audioCtx.destination);
-                osc.type = 'sine'; osc.frequency.setValueAtTime(500, now);
-                osc.frequency.exponentialRampToValueAtTime(60, now + 0.15);
-                gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
-                osc.start(now); osc.stop(now + 0.15);
-            } else if (type === 'hit') {
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.connect(gain); gain.connect(audioCtx.destination);
-                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(140, now);
-                osc.frequency.exponentialRampToValueAtTime(25, now + 0.2);
-                gain.gain.setValueAtTime(0.4, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
-                osc.start(now); osc.stop(now + 0.2);
-            } else if (type === 'coin') {
-                const osc1 = audioCtx.createOscillator();
-                const osc2 = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc1.connect(gain); osc2.connect(gain); gain.connect(audioCtx.destination);
-                osc1.type = 'sine'; osc2.type = 'sine';
-                osc1.frequency.setValueAtTime(987.77, now);
-                osc1.frequency.setValueAtTime(1318.51, now + 0.08);
-                gain.gain.setValueAtTime(0.25, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-                osc1.start(now); osc1.stop(now + 0.3);
-            } else if (type === 'heal') {
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.connect(gain); gain.connect(audioCtx.destination);
-                osc.type = 'triangle'; osc.frequency.setValueAtTime(220, now);
-                osc.frequency.exponentialRampToValueAtTime(523.25, now + 0.25);
-                gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
-                osc.start(now); osc.stop(now + 0.25);
-            } else if (type === 'overheal') {
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.connect(gain); gain.connect(audioCtx.destination);
-                osc.type = 'sine'; osc.frequency.setValueAtTime(300, now);
-                osc.frequency.exponentialRampToValueAtTime(800, now + 0.35);
-                gain.gain.setValueAtTime(0.35, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
-                osc.start(now); osc.stop(now + 0.35);
-            } else if (type === 'damage') {
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.connect(gain); gain.connect(audioCtx.destination);
-                osc.type = 'square'; osc.frequency.setValueAtTime(180, now);
-                osc.frequency.exponentialRampToValueAtTime(40, now + 0.3);
-                gain.gain.setValueAtTime(0.5, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-                osc.start(now); osc.stop(now + 0.3);
-            }
-        }
-
-        function drawAmmoBox(targetCtx, x, y, width, height) {
-            targetCtx.save();
-            targetCtx.fillStyle = '#4a5d31';
-            targetCtx.fillRect(x, y, width, height);
-            targetCtx.strokeStyle = '#2b381b';
-            targetCtx.lineWidth = Math.max(1, width * 0.03);
-            targetCtx.strokeRect(x, y, width, height);
-            targetCtx.fillStyle = '#3a4a26';
-            targetCtx.fillRect(x - width * 0.03, y, width * 1.06, height * 0.25);
-            targetCtx.strokeRect(x - width * 0.03, y, width * 1.06, height * 0.25);
-            targetCtx.fillStyle = '#7f8c8d';
-            targetCtx.fillRect(x + width * 0.42, y + height * 0.18, width * 0.16, height * 0.25);
-            targetCtx.strokeStyle = '#2c3e50';
-            targetCtx.strokeRect(x + width * 0.42, y + height * 0.18, width * 0.16, height * 0.25);
-            targetCtx.strokeStyle = '#2b381b';
-            targetCtx.lineWidth = Math.max(1, width * 0.05);
-            targetCtx.beginPath();
-            targetCtx.moveTo(x + width * 0.3, y);
-            targetCtx.lineTo(x + width * 0.3, y - height * 0.1);
-            targetCtx.lineTo(x + width * 0.7, y - height * 0.1);
-            targetCtx.lineTo(x + width * 0.7, y);
-            targetCtx.stroke();
-            targetCtx.fillStyle = '#f1c40f';
-            targetCtx.font = `bold ${Math.floor(height * 0.38)}px Arial`;
-            targetCtx.textAlign = 'center';
-            targetCtx.textBaseline = 'middle';
-            targetCtx.fillText('GC', x + width / 2, y + height * 0.65);
-            targetCtx.restore();
-        }
-
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-
-        // --- SPRITE IMAGE LOADING ---
-        const GAME_SPRITES = {
-            grassPattern: 'grass.png',
-            rockSheet: 'Rock1.png',      
-            pineTreeSheet: 'Tree1.png',  
-            leafyTreeSheet: 'Tree1.png', 
-            bushImage: 'bush.png'       
+      // CASE 1: Cache contains a Trackable -> Claim It
+      if (nearbyCache.trackable) {
+        const trackable = nearbyCache.trackable;
+        modalTitle.textContent = "Trackable Found!";
+        modalEmoji.textContent = trackable.emoji;
+        modalText.textContent = `You found a Trackable (${trackable.emoji}) inside this cache! Add it to your bag?`;
+        
+        btnPrimary.className = "trackable-btn btn-claim";
+        btnPrimary.textContent = "Claim Trackable";
+        btnPrimary.onclick = () => {
+          player.inventory.push(trackable);
+          nearbyCache.trackable = null;
+          updateHUD();
+          closeModal();
         };
 
-        const images = {};
-        let grassPatternObj = null;
+        btnSecondary.onclick = closeModal;
+        openModal();
+      } 
+      // CASE 2: Cache is empty AND player has an item in inventory -> Deposit It
+      else if (player.inventory.length > 0) {
+        const trackable = player.inventory[0];
+        modalTitle.textContent = "Deposit Trackable";
+        modalEmoji.textContent = trackable.emoji;
+        modalText.textContent = `Do you want to deposit ${trackable.emoji} into this empty cache?`;
 
-        for (const [key, path] of Object.entries(GAME_SPRITES)) {
-            if (path && path.trim() !== '') {
-                images[key] = new Image();
-                images[key].src = path;
-                if (key === 'grassPattern') {
-                    images[key].onload = () => {
-                        grassPatternObj = ctx.createPattern(images[key], 'repeat');
-                    };
-                }
+        btnPrimary.className = "trackable-btn btn-deposit";
+        btnPrimary.textContent = "Deposit Item";
+        btnPrimary.onclick = () => {
+          const item = player.inventory.shift();
+          
+          // Check Quest Progress (Relocated to a NEW cache)
+          if (item.originCacheId !== nearbyCache.id) {
+            quest.relocatedCount++;
+            if (quest.relocatedCount >= quest.targetGoal) {
+              quest.completed = true;
             }
-        }
+          }
+          
+          item.originCacheId = nearbyCache.id;
+          nearbyCache.trackable = item;
 
-        const GRASS_SCALE = 0.3;
-
-        function drawGrassBackground(gx, gy) {
-            ctx.save();
-            if (grassPatternObj) {
-                ctx.save();
-                ctx.scale(GRASS_SCALE, GRASS_SCALE);
-                const tileWidth = (images.grassPattern.width || 905);
-                const tileHeight = (images.grassPattern.height || 588);
-                const offsetX = -(((gx * canvas.width) / GRASS_SCALE) % tileWidth);
-                const offsetY = -(((gy * canvas.height) / GRASS_SCALE) % tileHeight);
-                ctx.translate(offsetX, offsetY);
-                ctx.fillStyle = grassPatternObj;
-                ctx.fillRect(-offsetX, -offsetY, canvas.width / GRASS_SCALE, canvas.height / GRASS_SCALE);
-                ctx.restore();
-                ctx.fillStyle = 'rgba(10, 35, 10, 0.45)';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-            } else {
-                ctx.fillStyle = '#1b3815';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-            }
-            ctx.restore();
-        }
-
-        // --- ANIMATED PLAYER SPRITE LOADING ---
-        const playerSprites = { idle: [], run: [] };
-
-        for (let i = 1; i <= 6; i++) {
-            const img = new Image();
-            img.src = `idle${i}.png`;
-            playerSprites.idle.push(img);
-        }
-
-        for (let i = 1; i <= 6; i++) {
-            const img = new Image();
-            img.src = `run${i}.png`;
-            playerSprites.run.push(img);
-        }
-
-        const sectorEl = document.getElementById('sector');
-        const heartsContainer = document.getElementById('hearts-container');
-        const mobileBushBtn = document.getElementById('mobile-bush-btn');
-        const mobileTurtleBtn = document.getElementById('mobile-turtle-btn');
-        const mobileSwordBtn = document.getElementById('mobile-sword-btn');
-        const potionPrompt = document.getElementById('potion-prompt');
-        const cacheModal = document.getElementById('cache-modal');
-        const trackableOverlay = document.getElementById('trackable-overlay');
-        const questModal = document.getElementById('quest-modal');
-        const gameOverModal = document.getElementById('game-over-modal');
-        const potionModal = document.getElementById('potion-modal');
-        const modalActions = document.getElementById('modal-actions');
-        const modalTitle = document.getElementById('modal-title');
-        const stealWarning = document.getElementById('steal-warning');
-
-        const questBannerContainer = document.getElementById('quest-banner-container');
-        const bannerQuestTitle = document.getElementById('banner-quest-title');
-        const bannerQuestCoords = document.getElementById('banner-quest-coords');
-
-        const isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
-        if (isMobile) {
-            mobileSwordBtn.style.display = 'flex';
-        }
-
-        const INTERACTION_DISTANCE = 55;
-
-        const questState = {
-            q1Completed: false, cachesFound: 0, cachesTarget: 20, code1: "MASTER-9921",
-            q2Completed: false, monstersDefeated: 0, monstersTarget: 10, code2: "SLAYER-7740",
-            q3Completed: false, trackablesRelocated: 0, trackablesTarget: 5, code3: "LOVER-3310"
+          updateHUD();
+          closeModal();
         };
 
-        const ATTACK_DURATION = 0.25;
+        btnSecondary.onclick = closeModal;
+        openModal();
+      }
+    }
 
-        let player = {
-            gridX: 0, gridY: 0,
-            x: canvas.width / 2, y: canvas.height / 2,
-            radius: 12, speed: 220,
-            facingLeft: false, animTimer: 0, animFrame: 0,
-            isMoving: false, isAttacking: false, attackTimer: 0,
-            health: 3, maxHealth: 3, yellowHearts: 0, invulnerableTimer: 0
-        };
+    function openModal() {
+      modalOpen = true;
+      document.getElementById('trackable-overlay').classList.add('active');
+    }
 
-        let inventory = [
-            { name: "Wooden Sword", type: "weapon", icon: "🗡️" },
-            null, null, null, null
-        ];
-        let selectedSlotIndex = 0;
+    function closeModal() {
+      modalOpen = false;
+      document.getElementById('trackable-overlay').classList.remove('active');
+    }
 
-        function updateHeartsUI() {
-            let heartsStr = "";
-            for (let i = 0; i < player.maxHealth; i++) heartsStr += (i < player.health) ? "❤️" : "🖤";
-            for (let i = 0; i < player.yellowHearts; i++) heartsStr += "💛";
-            heartsContainer.textContent = heartsStr;
+    function updateHUD() {
+      document.getElementById('inv-count').textContent = player.inventory.length;
+      document.getElementById('quest-count').textContent = `${quest.relocatedCount}`;
+    }
+
+    // --- RENDER LOOP ---
+    function draw() {
+      // Clear screen
+      ctx.fillStyle = '#15803d';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw Grid Lines
+      ctx.strokeStyle = '#166534';
+      ctx.lineWidth = 1;
+      for (let x = 0; x < canvas.width; x += TILE_SIZE) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+      }
+      for (let y = 0; y < canvas.height; y += TILE_SIZE) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+      }
+
+      // Draw Geocaches
+      geocaches.forEach(cache => {
+        ctx.fillStyle = cache.trackable ? '#d97706' : '#475569';
+        ctx.fillRect(cache.x, cache.y, cache.size, cache.size);
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(cache.x, cache.y, cache.size, cache.size);
+
+        // Draw trackable indicator emoji
+        if (cache.trackable) {
+          ctx.font = '16px serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(cache.trackable.emoji, cache.x + 15, cache.y + 22);
         }
-
-        function updateHotbarUI() {
-            const slots = document.querySelectorAll('.slot');
-            slots.forEach((slot, idx) => {
-                if (idx === selectedSlotIndex) slot.classList.add('selected');
-                else slot.classList.remove('selected');
-
-                const item = inventory[idx];
-                const iconSpan = slot.querySelector('.item-icon');
-                iconSpan.textContent = item ? item.icon : "";
-            });
-
-            const currentItem = inventory[selectedSlotIndex];
-            if (currentItem && (currentItem.type === 'hp_potion' || currentItem.type === 'overheal_potion')) {
-                potionPrompt.style.display = 'block';
-                if (isMobile) mobileSwordBtn.textContent = '🧪';
-            } else {
-                potionPrompt.style.display = 'none';
-                if (isMobile) mobileSwordBtn.textContent = '🗡️';
-            }
-        }
-
-        function selectSlot(index) {
-            selectedSlotIndex = index;
-            updateHotbarUI();
-        }
-
-        let activeHeldCacheTime = 0;
-
-        function checkHeldCacheTimer(deltaTime) {
-            const holdsCache = inventory.some(item => item && item.type === 'cache');
-            if (holdsCache) {
-                activeHeldCacheTime += deltaTime;
-                if (activeHeldCacheTime > 5) stealWarning.style.display = 'block';
-            } else {
-                activeHeldCacheTime = 0;
-                stealWarning.style.display = 'none';
-            }
-        }
-
-        let joystick = { active: false, touchId: null, startX: 0, startY: 0, currX: 0, currY: 0, maxRadius: 50 };
-
-        const keys = {};
-        let worldMap = {};
-        let activeNearbyBush = null;
-        let activeNearbyTurtle = null;
-        let leavesParticles = [];
-        let bushCounter = 0;
-
-        class Bush {
-            constructor(x, y) {
-                this.id = bushCounter++;
-                this.x = x; this.y = y;
-                this.radius = 26;
-                
-                // --- STRICT MUTUAL EXCLUSIVITY LOGIC ---
-                this.hasCache = Math.random() < 0.45;
-                this.cacheTaken = false;
-                this.signed = false;
-
-                if (this.hasCache) {
-                    // STRICT NO-POTION RULE IF CACHE IS PRESENT
-                    this.hasPotion = false;
-                    this.hasOverhealPotion = false;
-                    this.hasTrackable = Math.random() < 0.4;
-                    this.trackableEmoji = getRandomTrackableEmoji();
-                } else {
-                    this.hasTrackable = false;
-                    this.trackableEmoji = null;
-
-                    // Weighted Potion Drop Rates (70% None, 24% Health Potion, 6% Overheal Potion)
-                    const pRoll = Math.random();
-                    if (pRoll < 0.24) {
-                        this.hasPotion = true;
-                        this.hasOverhealPotion = false;
-                    } else if (pRoll < 0.30) {
-                        this.hasPotion = false;
-                        this.hasOverhealPotion = true;
-                    } else {
-                        this.hasPotion = false;
-                        this.hasOverhealPotion = false;
-                    }
-                }
-
-                this.potionTaken = false;
-                this.overhealTaken = false;
-                this.trackableTaken = false;
-                this.isPermanentlyLockedTrackable = false;
-                this.originalTrackableSourceId = this.id;
-                this.rustleTimer = 0;
-                this.leaves = [
-                    { dx: 0, dy: 0, r: this.radius },
-                    { dx: -9, dy: -7, r: this.radius * 0.7 },
-                    { dx: 9, dy: -7, r: this.radius * 0.7 },
-                    { dx: -7, dy: 9, r: this.radius * 0.7 },
-                    { dx: 7, dy: 9, r: this.radius * 0.7 }
-                ];
-            }
-
-            rustle() {
-                this.rustleTimer = 0.4;
-                for (let i = 0; i < 8; i++) {
-                    leavesParticles.push({
-                        x: this.x + (Math.random() - 0.5) * 20,
-                        y: this.y + (Math.random() - 0.5) * 20,
-                        vx: (Math.random() - 0.5) * 60,
-                        vy: -Math.random() * 40 - 20,
-                        life: 0.5
-                    });
-                }
-            }
-
-            draw(deltaTime) {
-                let shakeX = 0;
-                if (this.rustleTimer > 0) {
-                    this.rustleTimer -= deltaTime;
-                    shakeX = Math.sin(this.rustleTimer * 50) * 4;
-                }
-
-                ctx.save();
-                ctx.translate(shakeX, 0);
-
-                const img = images.bushImage;
-                if (img && img.complete && img.naturalWidth !== 0) {
-                    ctx.drawImage(img, this.x - 30, this.y - 30, 60, 60);
-                } else {
-                    ctx.fillStyle = this.signed ? '#27ae60' : '#2b752f';
-                    for (const leaf of this.leaves) {
-                        ctx.beginPath();
-                        ctx.arc(this.x + leaf.dx, this.y + leaf.dy, leaf.r, 0, Math.PI * 2);
-                        ctx.fill();
-                    }
-                }
-
-                if (this.signed) {
-                    drawAmmoBox(ctx, this.x - 11, this.y - 7, 22, 14);
-                }
-
-                ctx.restore();
-            }
-        }
-
-        class DecorativeTurtle {
-            constructor(x, y, minX, maxX) {
-                this.x = x; this.y = y;
-                this.minX = minX; this.maxX = maxX;
-                this.speed = 25; this.direction = 1;
-                this.radius = 16; this.emoji = '🐢';
-            }
-
-            update(deltaTime) {
-                this.x += this.speed * this.direction * deltaTime;
-                if (this.x >= this.maxX) { this.x = this.maxX; this.direction = -1; }
-                else if (this.x <= this.minX) { this.x = this.minX; this.direction = 1; }
-            }
-
-            draw() {
-                ctx.save();
-                ctx.translate(this.x, this.y);
-                if (this.direction === -1) ctx.scale(-1, 1);
-                ctx.font = '26px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
-                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                ctx.fillText(this.emoji, 0, 0);
-                ctx.restore();
-            }
-        }
-
-        class Rock {
-            constructor(x, y) { this.x = x; this.y = y; this.radius = 22; }
-            draw() {
-                const img = images.rockSheet;
-                if (img && img.complete && img.naturalWidth !== 0) {
-                    ctx.drawImage(img, this.x - 30, this.y - 25, 60, 50);
-                } else {
-                    ctx.fillStyle = '#7f8c8d';
-                    ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.fill();
-                }
-            }
-        }
-
-        class Tree {
-            constructor(x, y) { this.x = x; this.y = y; this.trunkRadius = 14; }
-            drawCanopy() {
-                const img = images.pineTreeSheet;
-                if (img && img.complete && img.naturalWidth !== 0) {
-                    ctx.drawImage(img, this.x - 40, this.y - 80, 80, 95);
-                } else {
-                    ctx.fillStyle = 'rgba(46, 125, 50, 0.85)';
-                    ctx.beginPath(); ctx.arc(this.x, this.y - 12, 40, 0, Math.PI * 2); ctx.fill();
-                }
-            }
-        }
-
-        class Monster {
-            constructor(x, y) {
-                this.x = x; this.y = y;
-                this.radius = 18; this.speed = 110;
-                this.detectionRange = 180; this.isChasing = false;
-                this.alive = true; this.facingLeft = true;
-                this.sprite = '🦖';
-            }
-
-            update(deltaTime) {
-                if (!this.alive || (player.health <= 0 && player.yellowHearts <= 0)) return;
-                const dist = Math.hypot(player.x - this.x, player.y - this.y);
-                if (dist < this.detectionRange) {
-                    this.isChasing = true;
-                    const angle = Math.atan2(player.y - this.y, player.x - this.x);
-                    this.facingLeft = (player.x < this.x);
-                    this.x += Math.cos(angle) * this.speed * deltaTime;
-                    this.y += Math.sin(angle) * this.speed * deltaTime;
-                } else {
-                    this.isChasing = false;
-                }
-
-                if (dist < this.radius + player.radius) {
-                    let touchingSword = false;
-                    if (player.isAttacking) {
-                        const progress = 1 - (player.attackTimer / ATTACK_DURATION);
-                        const swordAngle = -Math.PI / 2 + (progress * Math.PI);
-                        const dir = player.facingLeft ? -1 : 1;
-                        const swordTipX = player.x + Math.cos(swordAngle) * 42 * dir;
-                        const swordTipY = player.y + Math.sin(swordAngle) * 42;
-
-                        if (Math.hypot(this.x - swordTipX, this.y - swordTipY) < this.radius + 20) {
-                            touchingSword = true;
-                        }
-                    }
-
-                    if (!touchingSword && player.invulnerableTimer <= 0) {
-                        if (player.yellowHearts > 0) player.yellowHearts--;
-                        else player.health--;
-
-                        player.invulnerableTimer = 1.0;
-                        playSound('damage');
-                        updateHeartsUI();
-
-                        if (player.health <= 0 && player.yellowHearts <= 0) {
-                            gameOverModal.style.display = 'block';
-                        }
-                    }
-                }
-            }
-
-            draw() {
-                if (!this.alive) return;
-                ctx.save();
-                if (this.isChasing) {
-                    ctx.fillStyle = '#e74c3c';
-                    ctx.font = 'bold 22px Arial';
-                    ctx.textAlign = 'center';
-                    ctx.fillText('!', this.x, this.y - 28);
-                }
-                ctx.translate(this.x, this.y);
-                if (!this.facingLeft) ctx.scale(-1, 1);
-                ctx.font = '36px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
-                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                ctx.fillText(this.sprite, 0, 0);
-                ctx.restore();
-            }
-        }
-
-        function getOrCreateChunk(gx, gy) {
-            const key = `${gx},${gy}`;
-            if (worldMap[key]) return worldMap[key];
-
-            const bushes = [], rocks = [], trees = [], monsters = [], turtles = [];
-            const isSpawn = (gx === 0 && gy === 0);
-
-            for (let i = 0; i < 4; i++) {
-                bushes.push(new Bush(80 + Math.random() * 640, 80 + Math.random() * 440));
-            }
-
-            const numRocks = isSpawn ? 3 : Math.floor(Math.random() * 3) + 5;
-            const numTrees = isSpawn ? 3 : Math.floor(Math.random() * 4) + 6;
-
-            for (let i = 0; i < numRocks; i++) {
-                rocks.push(new Rock(80 + Math.random() * 640, 80 + Math.random() * 440));
-            }
-
-            for (let i = 0; i < numTrees; i++) {
-                trees.push(new Tree(80 + Math.random() * 640, 80 + Math.random() * 440));
-            }
-
-            if (!isSpawn) {
-                const numMonsters = Math.floor(Math.random() * 2) + 1;
-                for (let i = 0; i < numMonsters; i++) {
-                    monsters.push(new Monster(100 + Math.random() * 600, 100 + Math.random() * 400));
-                }
-            }
-
-            if (Math.random() < 0.4) {
-                const startX = 150 + Math.random() * 500;
-                const startY = 150 + Math.random() * 300;
-                turtles.push(new DecorativeTurtle(startX, startY, startX - 80, startX + 80));
-            }
-
-            const chunk = { bushes, rocks, trees, monsters, turtles };
-            worldMap[key] = chunk;
-            return chunk;
-        }
-
-        getOrCreateChunk(0, 0);
-
-        function triggerQuestBanner(questTitle, questCode) {
-            bannerQuestTitle.textContent = questTitle;
-            bannerQuestCoords.textContent = questCode;
-            questBannerContainer.style.display = 'flex';
-            playSound('coin');
-
-            setTimeout(() => { questBannerContainer.classList.add('slide-in'); }, 50);
-            setTimeout(() => {
-                questBannerContainer.classList.remove('slide-in');
-                setTimeout(() => { questBannerContainer.style.display = 'none'; }, 600);
-            }, 4500);
-        }
-
-        function respawnPlayer() {
-            player.health = player.maxHealth;
-            player.yellowHearts = 0;
-            player.invulnerableTimer = 0;
-            player.gridX = 0; player.gridY = 0;
-            player.x = canvas.width / 2; player.y = canvas.height / 2;
-            player.isAttacking = false;
-
-            questState.cachesFound = 0;
-            questState.monstersDefeated = 0;
-            questState.trackablesRelocated = 0;
-            questState.q1Completed = false;
-            questState.q2Completed = false;
-            questState.q3Completed = false;
-
-            inventory = [
-                { name: "Wooden Sword", type: "weapon", icon: "🗡️" },
-                null, null, null, null
-            ];
-            selectedSlotIndex = 0;
-
-            worldMap = {};
-            bushCounter = 0;
-            getOrCreateChunk(0, 0);
-
-            updateHeartsUI();
-            updateHotbarUI();
-            updateQuestProgress();
-
-            gameOverModal.style.display = 'none';
-        }
-
-        function triggerActionOrAttack() {
-            if (player.health <= 0 && player.yellowHearts <= 0) return;
-            const selectedItem = inventory[selectedSlotIndex];
-
-            if (selectedItem && (selectedItem.type === 'hp_potion' || selectedItem.type === 'overheal_potion')) {
-                openPotionConfirmation(selectedItem);
-                return;
-            }
-
-            if (!selectedItem || selectedItem.type !== "weapon") return;
-
-            if (player.isAttacking) return;
-            player.isAttacking = true;
-            player.attackTimer = ATTACK_DURATION;
-
-            playSound('sword');
-
-            const chunk = getOrCreateChunk(player.gridX, player.gridY);
-            chunk.monsters.forEach(m => {
-                if (!m.alive) return;
-                const dist = Math.hypot(player.x - m.x, player.y - m.y);
-                if (dist < 55) {
-                    m.alive = false;
-                    questState.monstersDefeated++;
-                    updateQuestProgress();
-                    playSound('hit');
-                }
-            });
-        }
-
-        function openPotionConfirmation(item) {
-            const titleEl = document.getElementById('potion-modal-title');
-            const descEl = document.getElementById('potion-modal-desc');
-
-            if (item.type === 'hp_potion') {
-                titleEl.textContent = "Drink Health Potion? 🧪";
-                descEl.textContent = "Would you like to drink this Health Potion to restore 1 Heart?";
-            } else if (item.type === 'overheal_potion') {
-                titleEl.textContent = "Drink Overheal Potion? 🏺";
-                descEl.textContent = "Would you like to drink this Overheal Potion to gain +3 Golden Hearts?";
-            }
-
-            potionModal.style.display = 'block';
-        }
-
-        function confirmDrinkPotion() {
-            const item = inventory[selectedSlotIndex];
-            if (!item) return;
-
-            if (item.type === 'hp_potion') {
-                if (player.health < player.maxHealth) {
-                    player.health++;
-                    updateHeartsUI();
-                    playSound('heal');
-                    inventory[selectedSlotIndex] = null;
-                } else {
-                    alert("Health is already full!");
-                }
-            } else if (item.type === 'overheal_potion') {
-                player.yellowHearts += 3;
-                updateHeartsUI();
-                playSound('overheal');
-                inventory[selectedSlotIndex] = null;
-            }
-
-            updateHotbarUI();
-            closeModal('potion-modal');
-        }
-
-        function handleTurtleInteractOrPlace() {
-            const selectedItem = inventory[selectedSlotIndex];
-
-            if (selectedItem && selectedItem.type === 'turtle') {
-                const chunk = getOrCreateChunk(player.gridX, player.gridY);
-                const placeX = player.x;
-                const placeY = player.y;
-
-                chunk.turtles.push(new DecorativeTurtle(placeX, placeY, Math.max(50, placeX - 80), Math.min(canvas.width - 50, placeX + 80)));
-                inventory[selectedSlotIndex] = null;
-                playSound('heal');
-                updateHotbarUI();
-                return;
-            }
-
-            if (activeNearbyTurtle) {
-                const emptyIndex = inventory.findIndex(slot => slot === null);
-                if (emptyIndex !== -1) {
-                    const chunk = getOrCreateChunk(player.gridX, player.gridY);
-                    const idx = chunk.turtles.indexOf(activeNearbyTurtle);
-                    if (idx !== -1) {
-                        chunk.turtles.splice(idx, 1);
-                        inventory[emptyIndex] = { name: "Turtle", type: "turtle", icon: "🐢" };
-                        playSound('coin');
-                        updateHotbarUI();
-                    }
-                } else {
-                    alert("Inventory Full!");
-                }
-            }
-        }
-
-        window.addEventListener('keydown', e => {
-            const key = e.key.toLowerCase();
-            keys[e.code] = true;
-            keys[key] = true;
-
-            if (['1', '2', '3', '4', '5'].includes(e.key)) {
-                selectSlot(parseInt(e.key) - 1);
-            }
-
-            if (key === 'q') {
-                toggleQuestModal();
-            } else if (key === 'f') {
-                handleTurtleInteractOrPlace();
-            } else if (key === 'e') {
-                if (potionModal.style.display === 'block') {
-                    closeModal('potion-modal');
-                } else if (questModal.style.display === 'block') {
-                    closeModal('quest-modal');
-                } else if (trackableOverlay.style.display === 'flex') {
-                    closeModal('trackable-overlay');
-                } else if (cacheModal.style.display === 'block') {
-                    closeModal('cache-modal');
-                } else if (activeNearbyBush) {
-                    interactWithBush(activeNearbyBush);
-                }
-            } else if (key === 'r') {
-                if (cacheModal.style.display === 'block') {
-                    const btn = document.getElementById('btn-take-cache');
-                    if (btn) btn.click();
-                }
-            } else if (key === 't') {
-                if (trackableOverlay.style.display === 'flex') {
-                    claimTrackable();
-                } else if (cacheModal.style.display === 'block') {
-                    const btn = document.getElementById('btn-inspect-trackable');
-                    if (btn) btn.click();
-                }
-            }
-
-            if (e.code === 'Space') {
-                triggerActionOrAttack();
-            }
-        });
-
-        window.addEventListener('keyup', e => {
-            const key = e.key.toLowerCase();
-            keys[e.code] = false;
-            keys[key] = false;
-        });
-
-        mobileSwordBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            triggerActionOrAttack();
-        });
-
-        if (isMobile) {
-            window.addEventListener('touchstart', e => {
-                for (let i = 0; i < e.changedTouches.length; i++) {
-                    const touch = e.changedTouches[i];
-                    if (touch.clientX < window.innerWidth / 2 && !joystick.active) {
-                        joystick.active = true;
-                        joystick.touchId = touch.identifier;
-                        joystick.startX = touch.clientX; joystick.startY = touch.clientY;
-                        joystick.currX = touch.clientX; joystick.currY = touch.clientY;
-                    }
-                }
-            });
-
-            window.addEventListener('touchmove', e => {
-                if (!joystick.active) return;
-                for (let i = 0; i < e.changedTouches.length; i++) {
-                    const touch = e.changedTouches[i];
-                    if (touch.identifier === joystick.touchId) {
-                        joystick.currX = touch.clientX; joystick.currY = touch.clientY;
-                    }
-                }
-            });
-
-            window.addEventListener('touchend', e => {
-                if (joystick.active) {
-                    for (let i = 0; i < e.changedTouches.length; i++) {
-                        if (e.changedTouches[i].identifier === joystick.touchId) joystick.active = false;
-                    }
-                }
-            });
-        }
-
-        function interactWithBush(bush) {
-            bush.rustle();
-            setTimeout(() => {
-                openCacheModal(bush);
-            }, 250);
-        }
-
-        mobileBushBtn.addEventListener('click', () => {
-            if (activeNearbyBush) interactWithBush(activeNearbyBush);
-        });
-
-        mobileTurtleBtn.addEventListener('click', () => {
-            handleTurtleInteractOrPlace();
-        });
-
-        function updateQuestProgress() {
-            document.getElementById('q1-count').textContent = questState.cachesFound;
-            document.getElementById('q2-monsters').textContent = questState.monstersDefeated;
-            document.getElementById('q3-trackables').textContent = questState.trackablesRelocated;
-
-            const q1Code = document.getElementById('q1-code');
-            if (questState.cachesFound >= questState.cachesTarget) {
-                q1Code.textContent = questState.code1;
-                q1Code.classList.remove('code-locked');
-                if (!questState.q1Completed) {
-                    questState.q1Completed = true;
-                    triggerQuestBanner("Master Geocacher!", questState.code1);
-                }
-            } else {
-                q1Code.textContent = "🔒 LOCKED";
-                q1Code.classList.add('code-locked');
-            }
-
-            const q2Code = document.getElementById('q2-code');
-            if (questState.monstersDefeated >= questState.monstersTarget) {
-                q2Code.textContent = questState.code2;
-                q2Code.classList.remove('code-locked');
-                if (!questState.q2Completed) {
-                    questState.q2Completed = true;
-                    triggerQuestBanner("Monster Hunter!", questState.code2);
-                }
-            } else {
-                q2Code.textContent = "🔒 LOCKED";
-                q2Code.classList.add('code-locked');
-            }
-
-            const q3Code = document.getElementById('q3-code');
-            if (questState.trackablesRelocated >= questState.trackablesTarget) {
-                q3Code.textContent = questState.code3;
-                q3Code.classList.remove('code-locked');
-                if (!questState.q3Completed) {
-                    questState.q3Completed = true;
-                    triggerQuestBanner("Trackable Lover", questState.code3);
-                }
-            } else {
-                q3Code.textContent = "🔒 LOCKED";
-                q3Code.classList.add('code-locked');
-            }
-        }
-
-        function toggleQuestModal() {
-            if (questModal.style.display === 'block') {
-                closeModal('quest-modal');
-            } else {
-                updateQuestProgress();
-                questModal.style.display = 'block';
-            }
-        }
-
-        function openCacheModal(bush) {
-            modalActions.innerHTML = "";
-            const previewCanvas = document.getElementById('cache-canvas-preview');
-            const pCtx = previewCanvas.getContext('2d');
-            pCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
-
-            let itemsFoundInBush = false;
-
-            if (bush.hasCache && !bush.cacheTaken) {
-                itemsFoundInBush = true;
-                modalTitle.textContent = "Geocache Discovered!";
-                previewCanvas.style.display = "block";
-                drawAmmoBox(pCtx, 20, 18, 60, 38);
-
-                const signBtn = document.createElement('button');
-                signBtn.id = "btn-sign-cache";
-                signBtn.className = "modal-btn";
-                signBtn.textContent = "Sign Cache Logbook";
-                signBtn.onclick = () => {
-                    if (!bush.signed) {
-                        bush.signed = true;
-                        questState.cachesFound++;
-                        updateQuestProgress();
-                    }
-                    closeModal('cache-modal');
-                };
-                modalActions.appendChild(signBtn);
-
-                const takeBtn = document.createElement('button');
-                takeBtn.id = "btn-take-cache";
-                takeBtn.className = "modal-btn";
-                takeBtn.textContent = isMobile ? "Take Geocache" : "Take Geocache [R]";
-                takeBtn.onclick = () => {
-                    const emptyIndex = inventory.findIndex(slot => slot === null);
-                    if (emptyIndex !== -1) {
-                        inventory[emptyIndex] = { name: "Geocache", type: "cache", icon: "📦" };
-                        bush.cacheTaken = true;
-                        updateHotbarUI();
-                    } else {
-                        alert("Inventory Full!");
-                    }
-                    closeModal('cache-modal');
-                };
-                modalActions.appendChild(takeBtn);
-
-                if (bush.hasTrackable && !bush.trackableTaken && !bush.isPermanentlyLockedTrackable) {
-                    const trackBtn = document.createElement('button');
-                    trackBtn.id = "btn-inspect-trackable";
-                    trackBtn.className = "modal-btn";
-                    trackBtn.textContent = isMobile ? `Inspect Trackable ${bush.trackableEmoji}` : `Inspect Trackable ${bush.trackableEmoji} [T]`;
-                    trackBtn.onclick = () => {
-                        closeModal('cache-modal');
-                        document.getElementById('trackable-display-icon').textContent = bush.trackableEmoji;
-                        trackableOverlay.style.display = 'flex';
-                    };
-                    modalActions.appendChild(trackBtn);
-                }
-
-                const trackableSlotIndex = inventory.findIndex(item => item && item.type === 'trackable');
-                if (trackableSlotIndex !== -1) {
-                    const trackableItem = inventory[trackableSlotIndex];
-                    const isSameCache = (trackableItem.sourceBushId === bush.id);
-
-                    const dropTrackBtn = document.createElement('button');
-                    dropTrackBtn.className = "modal-btn";
-                    dropTrackBtn.textContent = isSameCache ? `Put Trackable ${trackableItem.icon} Back` : `Drop Trackable ${trackableItem.icon} Here`;
-
-                    dropTrackBtn.onclick = () => {
-                        inventory[trackableSlotIndex] = null;
-                        
-                        if (!isSameCache) {
-                            questState.trackablesRelocated++;
-                            bush.isPermanentlyLockedTrackable = true;
-                            updateQuestProgress();
-                        } else {
-                            bush.isPermanentlyLockedTrackable = false;
-                        }
-
-                        bush.hasTrackable = true;
-                        bush.trackableTaken = false;
-                        bush.trackableEmoji = trackableItem.icon;
-                        bush.originalTrackableSourceId = trackableItem.sourceBushId;
-
-                        updateHotbarUI();
-                        closeModal('cache-modal');
-                    };
-                    modalActions.appendChild(dropTrackBtn);
-                }
-            }
-
-            if (bush.hasPotion && !bush.potionTaken) {
-                itemsFoundInBush = true;
-                modalTitle.textContent = "Health Potion Found!";
-                previewCanvas.style.display = "none";
-
-                const potionBtn = document.createElement('button');
-                potionBtn.className = "modal-btn";
-                potionBtn.style.background = "#27ae60";
-                potionBtn.textContent = "🧪 Take Health Potion";
-                potionBtn.onclick = () => {
-                    const emptyIndex = inventory.findIndex(slot => slot === null);
-                    if (emptyIndex !== -1) {
-                        inventory[emptyIndex] = { name: "Health Potion", type: "hp_potion", icon: "🧪" };
-                        bush.potionTaken = true;
-                        playSound('coin');
-                        updateHotbarUI();
-                    } else {
-                        alert("Inventory Full!");
-                    }
-                    closeModal('cache-modal');
-                };
-                modalActions.appendChild(potionBtn);
-            }
-
-            if (bush.hasOverhealPotion && !bush.overhealTaken) {
-                itemsFoundInBush = true;
-                modalTitle.textContent = "Overheal Potion Found!";
-                previewCanvas.style.display = "none";
-
-                const overhealBtn = document.createElement('button');
-                overhealBtn.className = "modal-btn";
-                overhealBtn.style.background = "#f39c12";
-                overhealBtn.textContent = "🏺 Take Overheal Potion (+3 💛)";
-                overhealBtn.onclick = () => {
-                    const emptyIndex = inventory.findIndex(slot => slot === null);
-                    if (emptyIndex !== -1) {
-                        inventory[emptyIndex] = { name: "Overheal Potion", type: "overheal_potion", icon: "🏺" };
-                        bush.overhealTaken = true;
-                        playSound('coin');
-                        updateHotbarUI();
-                    } else {
-                        alert("Inventory Full!");
-                    }
-                    closeModal('cache-modal');
-                };
-                modalActions.appendChild(overhealBtn);
-            }
-
-            if (!itemsFoundInBush) {
-                modalTitle.textContent = "Empty Bush";
-                previewCanvas.style.display = "none";
-            }
-
-            const cacheSlotIndex = inventory.findIndex(item => item && item.type === 'cache');
-            if (cacheSlotIndex !== -1) {
-                const putBackBtn = document.createElement('button');
-                putBackBtn.className = "modal-btn";
-                putBackBtn.textContent = "Put Back Geocache";
-                putBackBtn.onclick = () => {
-                    inventory[cacheSlotIndex] = null;
-                    bush.hasCache = true;
-                    bush.cacheTaken = false;
-                    updateHotbarUI();
-                    closeModal('cache-modal');
-                };
-                modalActions.appendChild(putBackBtn);
-            }
-
-            cacheModal.style.display = 'block';
-        }
-
-        function claimTrackable() {
-            if (!activeNearbyBush) return;
-            const emptyIndex = inventory.findIndex(slot => slot === null);
-            if (emptyIndex !== -1) {
-                inventory[emptyIndex] = { 
-                    name: "Trackable", 
-                    type: "trackable", 
-                    icon: activeNearbyBush.trackableEmoji,
-                    sourceBushId: activeNearbyBush.originalTrackableSourceId 
-                };
-                activeNearbyBush.trackableTaken = true;
-                playSound('coin');
-                updateHotbarUI();
-            } else {
-                alert("Inventory Full!");
-            }
-            trackableOverlay.style.display = 'none';
-        }
-
-        function closeModal(id) {
-            document.getElementById(id).style.display = 'none';
-        }
-
-        function updatePlayer(deltaTime) {
-            if (player.health <= 0 && player.yellowHearts <= 0) return;
-
-            if (player.invulnerableTimer > 0) {
-                player.invulnerableTimer -= deltaTime;
-            }
-
-            if (player.isAttacking) {
-                player.attackTimer -= deltaTime;
-                if (player.attackTimer <= 0) player.isAttacking = false;
-            }
-
-            let dx = 0, dy = 0;
-            if (keys['w'] || keys['arrowup']) dy -= 1;
-            if (keys['s'] || keys['arrowdown']) dy += 1;
-            if (keys['a'] || keys['arrowleft']) dx -= 1;
-            if (keys['d'] || keys['arrowright']) dx += 1;
-
-            if (joystick.active && dx === 0 && dy === 0) {
-                const diffX = joystick.currX - joystick.startX;
-                const diffY = joystick.currY - joystick.startY;
-                const dist = Math.hypot(diffX, diffY);
-                if (dist > 5) {
-                    dx = diffX / Math.max(dist, joystick.maxRadius);
-                    dy = diffY / Math.max(dist, joystick.maxRadius);
-                }
-            }
-
-            player.isMoving = (dx !== 0 || dy !== 0);
-
-            if (dx < 0) player.facingLeft = true;
-            else if (dx > 0) player.facingLeft = false;
-
-            player.animTimer += deltaTime;
-            if (player.isMoving) {
-                if (player.animTimer >= 0.1) {
-                    player.animTimer = 0;
-                    player.animFrame = (player.animFrame + 1) % playerSprites.run.length;
-                }
-            } else {
-                if (player.animTimer >= 0.15) {
-                    player.animTimer = 0;
-                    player.animFrame = (player.animFrame + 1) % playerSprites.idle.length;
-                }
-            }
-
-            if (dx !== 0 && dy !== 0) { dx *= 0.7071; dy *= 0.7071; }
-
-            let nextX = player.x + dx * player.speed * deltaTime;
-            let nextY = player.y + dy * player.speed * deltaTime;
-
-            const currentChunk = getOrCreateChunk(player.gridX, player.gridY);
-            
-            for (const rock of currentChunk.rocks) {
-                const dist = Math.hypot(nextX - rock.x, nextY - rock.y);
-                const minDist = player.radius + rock.radius;
-                if (dist < minDist) {
-                    const angle = Math.atan2(nextY - rock.y, nextX - rock.x);
-                    nextX = rock.x + Math.cos(angle) * minDist;
-                    nextY = rock.y + Math.sin(angle) * minDist;
-                }
-            }
-
-            for (const tree of currentChunk.trees) {
-                const dist = Math.hypot(nextX - tree.x, nextY - tree.y);
-                const minDist = player.radius + tree.trunkRadius;
-                if (dist < minDist) {
-                    const angle = Math.atan2(nextY - tree.y, nextX - tree.x);
-                    nextX = tree.x + Math.cos(angle) * minDist;
-                    nextY = tree.y + Math.sin(angle) * minDist;
-                }
-            }
-
-            player.x = nextX;
-            player.y = nextY;
-
-            if (player.x > canvas.width) { player.gridX++; player.x = player.radius + 2; }
-            else if (player.x < 0) { player.gridX--; player.x = canvas.width - player.radius - 2; }
-            
-            if (player.y < 0) { player.gridY++; player.y = canvas.height - player.radius - 2; }
-            else if (player.y > canvas.height) { player.gridY--; player.y = player.radius + 2; }
-
-            sectorEl.textContent = `X: ${player.gridX}, Y: ${player.gridY}`;
-        }
-
-        function drawPlayerSprite() {
-            if (player.health <= 0 && player.yellowHearts <= 0) return;
-
-            if (player.invulnerableTimer > 0 && Math.floor(performance.now() / 100) % 2 === 0) {
-                return;
-            }
-
-            const currentArray = player.isMoving ? playerSprites.run : playerSprites.idle;
-            const frameIndex = player.animFrame % currentArray.length;
-            const spriteImg = currentArray[frameIndex];
-
-            ctx.save();
-            ctx.translate(player.x, player.y);
-
-            if (player.facingLeft) {
-                ctx.scale(-1, 1);
-            }
-
-            const originalWidth = (spriteImg && spriteImg.naturalWidth) ? spriteImg.naturalWidth : 40;
-            const originalHeight = (spriteImg && spriteImg.naturalHeight) ? spriteImg.naturalHeight : 40;
-            const aspectRatio = originalWidth / originalHeight;
-
-            const drawHeight = 32;
-            const drawWidth = drawHeight * aspectRatio;
-
-            if (spriteImg && spriteImg.complete && spriteImg.naturalWidth !== 0) {
-                ctx.drawImage(spriteImg, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
-            } else {
-                ctx.fillStyle = '#2ecc71';
-                ctx.beginPath();
-                ctx.arc(0, 0, player.radius, 0, Math.PI * 2);
-                ctx.fill();
-            }
-
-            ctx.restore();
-
-            if (player.isAttacking) {
-                const progress = 1 - (player.attackTimer / ATTACK_DURATION);
-                const startAngle = -Math.PI / 2;
-                const endAngle = Math.PI / 2;
-                const currentAngle = startAngle + (progress * (endAngle - startAngle));
-
-                ctx.save();
-                ctx.translate(player.x, player.y);
-
-                if (player.facingLeft) {
-                    ctx.scale(-1, 1);
-                }
-
-                ctx.beginPath();
-                ctx.arc(0, 0, 42, startAngle, currentAngle, false);
-                ctx.lineWidth = 8;
-                ctx.strokeStyle = "rgba(255, 255, 255, 0.75)";
-                ctx.lineCap = "round";
-                ctx.stroke();
-
-                ctx.beginPath();
-                ctx.arc(0, 0, 42, startAngle, currentAngle, false);
-                ctx.lineWidth = 3;
-                ctx.strokeStyle = "#ffffff";
-                ctx.stroke();
-
-                ctx.rotate(currentAngle);
-                ctx.translate(32, 0);
-                ctx.rotate(Math.PI / 4 + Math.PI / 8 + Math.PI);
-
-                ctx.font = '26px sans-serif';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText("🗡️", 0, 0);
-
-                ctx.restore();
-            }
-        }
-
-        let lastTime = performance.now();
-        function gameLoop(currentTime) {
-            const deltaTime = (currentTime - lastTime) / 1000;
-            lastTime = currentTime;
-
-            drawGrassBackground(player.gridX, player.gridY);
-
-            updatePlayer(deltaTime);
-            checkHeldCacheTimer(deltaTime);
-
-            const chunk = getOrCreateChunk(player.gridX, player.gridY);
-
-            chunk.bushes.forEach(b => b.draw(deltaTime));
-            chunk.rocks.forEach(r => r.draw());
-            
-            chunk.turtles.forEach(t => {
-                t.update(deltaTime);
-                t.draw();
-            });
-
-            for (let i = leavesParticles.length - 1; i >= 0; i--) {
-                const p = leavesParticles[i];
-                p.x += p.vx * deltaTime;
-                p.y += p.vy * deltaTime;
-                p.life -= deltaTime;
-                if (p.life <= 0) {
-                    leavesParticles.splice(i, 1);
-                } else {
-                    ctx.fillStyle = '#2ecc71';
-                    ctx.beginPath();
-                    ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-            }
-
-            activeNearbyBush = null;
-            activeNearbyTurtle = null;
-            let closestBushDist = Infinity;
-            let closestTurtleDist = Infinity;
-            const rect = canvas.getBoundingClientRect();
-
-            if (player.health > 0 || player.yellowHearts > 0) {
-                chunk.bushes.forEach(bush => {
-                    const dist = Math.hypot(player.x - bush.x, player.y - bush.y);
-                    if (dist < INTERACTION_DISTANCE && dist < closestBushDist) {
-                        closestBushDist = dist;
-                        activeNearbyBush = bush;
-                    }
-                });
-
-                chunk.turtles.forEach(turtle => {
-                    const dist = Math.hypot(player.x - turtle.x, player.y - turtle.y);
-                    if (dist < INTERACTION_DISTANCE && dist < closestTurtleDist) {
-                        closestTurtleDist = dist;
-                        activeNearbyTurtle = turtle;
-                    }
-                });
-            }
-
-            if (activeNearbyBush && cacheModal.style.display !== 'block' && questModal.style.display !== 'block' && trackableOverlay.style.display !== 'flex') {
-                const screenX = rect.left + (activeNearbyBush.x * (rect.width / canvas.width));
-                const screenY = rect.top + ((activeNearbyBush.y - 35) * (rect.height / canvas.height));
-
-                mobileBushBtn.style.left = `${screenX}px`;
-                mobileBushBtn.style.top = `${screenY}px`;
-                mobileBushBtn.style.display = 'block';
-                mobileBushBtn.textContent = isMobile ? "SEARCH" : "SEARCH [E]";
-            } else {
-                mobileBushBtn.style.display = 'none';
-            }
-
-            const selectedItem = inventory[selectedSlotIndex];
-            const isHoldingTurtle = selectedItem && selectedItem.type === 'turtle';
-
-            if ((activeNearbyTurtle || isHoldingTurtle) && cacheModal.style.display !== 'block' && questModal.style.display !== 'block' && trackableOverlay.style.display !== 'flex') {
-                const targetObj = isHoldingTurtle ? player : activeNearbyTurtle;
-                const screenX = rect.left + (targetObj.x * (rect.width / canvas.width));
-                const screenY = rect.top + ((targetObj.y - 35) * (rect.height / canvas.height));
-
-                mobileTurtleBtn.style.left = `${screenX}px`;
-                mobileTurtleBtn.style.top = `${screenY}px`;
-                mobileTurtleBtn.style.display = 'block';
-                
-                if (isHoldingTurtle) {
-                    mobileTurtleBtn.textContent = isMobile ? "PLACE" : "PLACE TURTLE [F]";
-                } else {
-                    mobileTurtleBtn.textContent = isMobile ? "PICK UP" : "PICK UP TURTLE [F]";
-                }
-            } else {
-                mobileTurtleBtn.style.display = 'none';
-            }
-
-            chunk.monsters.forEach(m => {
-                m.update(deltaTime);
-                m.draw();
-            });
-
-            drawPlayerSprite();
-
-            chunk.trees.forEach(t => t.drawCanopy());
-
-            requestAnimationFrame(gameLoop);
-        }
-
-        updateHeartsUI();
-        updateHotbarUI();
-        requestAnimationFrame(gameLoop);
-    </script>
+      });
+
+      // Draw Interaction Prompt
+      if (nearbyCache && !modalOpen) {
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText("Press [E] or [SPACE]", nearbyCache.x + 15, nearbyCache.y - 10);
+      }
+
+      // Draw Player
+      ctx.fillStyle = '#3b82f6';
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, player.size / 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      // Draw Quest Completed Overlay
+      if (quest.completed) {
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+        ctx.fillRect(150, 150, 500, 200);
+        ctx.fillStyle = '#f59e0b';
+        ctx.font = 'bold 28px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText("🏆 QUEST COMPLETED! 🏆", 400, 220);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '16px sans-serif';
+        ctx.fillText("You relocated 5 trackables to new caches!", 400, 270);
+      }
+    }
+
+    // --- MAIN GAME LOOP ---
+    function gameLoop() {
+      update();
+      draw();
+      requestAnimationFrame(gameLoop);
+    }
+
+    // Startup
+    initWorld();
+    updateHUD();
+    gameLoop();
+  </script>
 </body>
 </html>
