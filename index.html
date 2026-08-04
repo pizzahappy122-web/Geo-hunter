@@ -197,7 +197,10 @@
             text-align: center;
             z-index: 30;
             box-shadow: 0 0 20px rgba(0,0,0,0.8);
-            min-width: 320px;
+            min-width: 300px;
+            max-width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
             pointer-events: auto;
         }
         .game-modal h3 {
@@ -227,26 +230,34 @@
         #trackable-overlay {
             display: none;
             position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.8);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            max-width: 360px;
+            background: rgba(15, 15, 15, 0.95);
+            border: 2px solid #f1c40f;
+            border-radius: 12px;
+            padding: 15px;
             z-index: 50;
             align-items: center;
             justify-content: center;
             flex-direction: column;
             pointer-events: auto;
+            box-shadow: 0 0 25px rgba(0,0,0,0.9);
         }
         .sunburst-container {
             position: relative;
-            width: 260px;
-            height: 260px;
+            width: 160px;
+            height: 160px;
             display: flex;
             align-items: center;
             justify-content: center;
         }
         .sunburst {
             position: absolute;
-            width: 260px;
-            height: 260px;
+            width: 160px;
+            height: 160px;
             background: repeating-conic-gradient(
                 from 0deg,
                 rgba(241, 196, 15, 0.6) 0deg 15deg,
@@ -260,7 +271,7 @@
             to { transform: rotate(360deg); }
         }
         .trackable-display-icon {
-            font-size: 80px;
+            font-size: 55px;
             z-index: 2;
             filter: drop-shadow(0 0 10px #f1c40f);
         }
@@ -272,6 +283,7 @@
             left: 50%;
             transform: translateX(-50%);
             width: 480px;
+            max-width: 95%;
             height: 220px;
             z-index: 60;
             pointer-events: none;
@@ -300,7 +312,7 @@
         .ribbon-banner {
             position: relative;
             z-index: 2;
-            width: 420px;
+            width: 100%;
             background: #e74c3c;
             color: #ffffff;
             padding: 16px 20px;
@@ -324,13 +336,13 @@
             margin-bottom: 2px;
         }
         .ribbon-title {
-            font-size: 22px;
+            font-size: 20px;
             color: #ffffff;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
             margin-bottom: 6px;
         }
         .ribbon-coords {
-            font-size: 15px;
+            font-size: 14px;
             font-family: monospace;
             background: rgba(0,0,0,0.35);
             color: #2ecc71;
@@ -445,14 +457,14 @@
             <button class="modal-btn warning" onclick="closeModal('cache-modal')">Close [E]</button>
         </div>
 
-        <div id="trackable-overlay" class="game-modal">
+        <div id="trackable-overlay">
             <div class="sunburst-container">
                 <div class="sunburst"></div>
                 <div id="trackable-display-icon" class="trackable-display-icon">🏷️</div>
             </div>
-            <h2 style="color: #f1c40f; margin-top: 15px;">TRACKABLE DISCOVERED!</h2>
-            <button id="claim-trackable-btn" class="modal-btn" style="width: 200px; margin-top: 10px;" onclick="claimTrackable()">CLAIM TRACKABLE [T]</button>
-            <button class="modal-btn warning" style="width: 200px;" onclick="closeModal('trackable-overlay')">Close [E]</button>
+            <h3 style="color: #f1c40f; margin: 10px 0 5px 0;">TRACKABLE DISCOVERED!</h3>
+            <button id="claim-trackable-btn" class="modal-btn" style="width: 100%; margin-top: 5px;" onclick="claimTrackable()">CLAIM TRACKABLE [T]</button>
+            <button class="modal-btn warning" style="width: 100%;" onclick="closeModal('trackable-overlay')">Close [E]</button>
         </div>
 
         <div id="quest-modal" class="game-modal">
@@ -589,7 +601,8 @@
             rockSheet: 'Rock1.png',      
             pineTreeSheet: 'Tree1.png',  
             leafyTreeSheet: 'Tree1.png', 
-            bushImage: 'bush.png'       
+            bushImage: 'bush.png',
+            waterPuddle: 'Water.png'
         };
 
         const images = {};
@@ -756,13 +769,11 @@
                 this.x = x; this.y = y;
                 this.radius = 26;
                 
-                // --- STRICT MUTUAL EXCLUSIVITY LOGIC ---
                 this.hasCache = Math.random() < 0.45;
                 this.cacheTaken = false;
                 this.signed = false;
 
                 if (this.hasCache) {
-                    // STRICT NO-POTION RULE IF CACHE IS PRESENT
                     this.hasPotion = false;
                     this.hasOverhealPotion = false;
                     this.hasTrackable = Math.random() < 0.4;
@@ -771,7 +782,6 @@
                     this.hasTrackable = false;
                     this.trackableEmoji = null;
 
-                    // Weighted Potion Drop Rates (70% None, 24% Health Potion, 6% Overheal Potion)
                     const pRoll = Math.random();
                     if (pRoll < 0.24) {
                         this.hasPotion = true;
@@ -840,6 +850,29 @@
                 }
 
                 ctx.restore();
+            }
+        }
+
+        class WaterPuddle {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.width = 50 + Math.random() * 30;
+                this.height = 35 + Math.random() * 20;
+            }
+
+            draw() {
+                const img = images.waterPuddle;
+                if (img && img.complete && img.naturalWidth !== 0) {
+                    ctx.drawImage(img, this.x - this.width / 2, this.y - this.height / 2, this.width, this.height);
+                } else {
+                    ctx.save();
+                    ctx.fillStyle = 'rgba(52, 152, 219, 0.6)';
+                    ctx.beginPath();
+                    ctx.ellipse(this.x, this.y, this.width / 2, this.height / 2, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
             }
         }
 
@@ -967,8 +1000,13 @@
             const key = `${gx},${gy}`;
             if (worldMap[key]) return worldMap[key];
 
-            const bushes = [], rocks = [], trees = [], monsters = [], turtles = [];
+            const bushes = [], rocks = [], trees = [], monsters = [], turtles = [], puddles = [];
             const isSpawn = (gx === 0 && gy === 0);
+
+            const numPuddles = Math.floor(Math.random() * 3) + 2;
+            for (let i = 0; i < numPuddles; i++) {
+                puddles.push(new WaterPuddle(60 + Math.random() * 680, 60 + Math.random() * 480));
+            }
 
             for (let i = 0; i < 4; i++) {
                 bushes.push(new Bush(80 + Math.random() * 640, 80 + Math.random() * 440));
@@ -998,7 +1036,7 @@
                 turtles.push(new DecorativeTurtle(startX, startY, startX - 80, startX + 80));
             }
 
-            const chunk = { bushes, rocks, trees, monsters, turtles };
+            const chunk = { bushes, rocks, trees, monsters, turtles, puddles };
             worldMap[key] = chunk;
             return chunk;
         }
@@ -1663,6 +1701,7 @@
 
             const chunk = getOrCreateChunk(player.gridX, player.gridY);
 
+            chunk.puddles.forEach(p => p.draw());
             chunk.bushes.forEach(b => b.draw(deltaTime));
             chunk.rocks.forEach(r => r.draw());
             
