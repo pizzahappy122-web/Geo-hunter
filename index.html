@@ -559,6 +559,14 @@
                 osc.frequency.exponentialRampToValueAtTime(40, now + 0.3);
                 gain.gain.setValueAtTime(0.5, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
                 osc.start(now); osc.stop(now + 0.3);
+            } else if (type === 'bow_shoot') {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.type = 'triangle'; osc.frequency.setValueAtTime(600, now);
+                osc.frequency.exponentialRampToValueAtTime(150, now + 0.12);
+                gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+                osc.start(now); osc.stop(now + 0.12);
             }
         }
 
@@ -708,6 +716,74 @@
         ];
         let selectedSlotIndex = 0;
 
+        // --- BOW & ARROW MECHANICS (PC ONLY) ---
+        let isChargingBow = false;
+        let bowChargeTimer = 0;
+        const BOW_MAX_CHARGE_TIME = 1.0; 
+        let arrows = [];
+
+        class Arrow {
+            constructor(x, y, targetX, targetY) {
+                this.x = x;
+                this.y = y;
+                this.radius = 4;
+                this.speed = 500;
+                this.damage = 0.5; // 0.5 Heart Damage
+                this.alive = true;
+
+                const angle = Math.atan2(targetY - y, targetX - x);
+                this.vx = Math.cos(angle) * this.speed;
+                this.vy = Math.sin(angle) * this.speed;
+                this.angle = angle;
+            }
+
+            update(deltaTime) {
+                this.x += this.vx * deltaTime;
+                this.y += this.vy * deltaTime;
+
+                if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) {
+                    this.alive = false;
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.angle);
+                ctx.font = '18px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('🏹', 0, 0);
+                ctx.restore();
+            }
+        }
+
+        canvas.addEventListener('mousedown', (e) => {
+            if (isMobile) return;
+            const item = inventory[selectedSlotIndex];
+            if (item && item.type === 'bow' && e.button === 0) {
+                isChargingBow = true;
+                bowChargeTimer = 0;
+            }
+        });
+
+        canvas.addEventListener('mouseup', (e) => {
+            if (isMobile) return;
+            const item = inventory[selectedSlotIndex];
+            if (isChargingBow && item && item.type === 'bow' && e.button === 0) {
+                if (bowChargeTimer >= BOW_MAX_CHARGE_TIME) {
+                    const rect = canvas.getBoundingClientRect();
+                    const mouseX = (e.clientX - rect.left) * (canvas.width / rect.width);
+                    const mouseY = (e.clientY - rect.top) * (canvas.height / rect.height);
+                    
+                    arrows.push(new Arrow(player.x, player.y, mouseX, mouseY));
+                    playSound('bow_shoot');
+                }
+            }
+            isChargingBow = false;
+            bowChargeTimer = 0;
+        });
+
         function updateHeartsUI() {
             let heartsStr = "";
             for (let i = 0; i < player.maxHealth; i++) heartsStr += (i < player.health) ? "❤️" : "🖤";
@@ -732,12 +808,14 @@
                 if (isMobile) mobileSwordBtn.textContent = '🧪';
             } else {
                 potionPrompt.style.display = 'none';
-                if (isMobile) mobileSwordBtn.textContent = '🗡️';
+                if (isMobile) mobileSwordBtn.textContent = (currentItem && currentItem.type === 'bow') ? '🏹' : '🗡️';
             }
         }
 
         function selectSlot(index) {
             selectedSlotIndex = index;
+            isChargingBow = false;
+            bowChargeTimer = 0;
             updateHotbarUI();
         }
 
@@ -934,6 +1012,20 @@
                 this.detectionRange = 180; this.isChasing = false;
                 this.alive = true; this.facingLeft = true;
                 this.sprite = '🦖';
+                this.hp = 1.0; // Normal monster HP (1 Sword hit or 2 Bow hits)
+                this.isDino = false;
+            }
+
+            takeDamage(amount) {
+                this.hp -= amount;
+                if (this.hp <= 0) {
+                    this.alive = false;
+                    questState.monstersDefeated++;
+                    updateQuestProgress();
+                    playSound('hit');
+                } else {
+                    playSound('hit');
+                }
             }
 
             update(deltaTime) {
@@ -996,6 +1088,91 @@
             }
         }
 
+        // --- NEW DINOSAUR MONSTER CLASS ---
+        class DinosaurMonster extends Monster {
+            constructor(x, y) {
+                super(x, y);
+                this.sprite = '🦕';
+                this.speed = 65; // Slower than normal monster (110)
+                this.hp = 3.0; // Requires 4 sword hits (1.0 each) or 6 bow hits (0.5 each)
+                this.maxHp = 3.0;
+                this.isAggroed = false;
+                this.isDino = true;
+                this.radius = 24;
+            }
+
+            takeDamage(amount) {
+                this.isAggroed = true;
+                this.hp -= amount;
+                if (this.hp <= 0) {
+                    this.alive = false;
+                    questState.monstersDefeated++;
+                    updateQuestProgress();
+                    playSound('hit');
+
+                    // Drop Bow & Arrow on PC/Mobile if player doesn't already have it
+                    const emptySlot = inventory.findIndex(s => s === null);
+                    if (emptySlot !== -1 && !inventory.some(i => i && i.type === 'bow')) {
+                        inventory[emptySlot] = { name: "Bow & Arrow", type: "bow", icon: "🏹" };
+                        updateHotbarUI();
+                    }
+                } else {
+                    playSound('hit');
+                }
+            }
+
+            update(deltaTime) {
+                if (!this.alive || (player.health <= 0 && player.yellowHearts <= 0)) return;
+                const dist = Math.hypot(player.x - this.x, player.y - this.y);
+
+                // Only chase and attack if aggroed (hit first)
+                if (this.isAggroed) {
+                    this.isChasing = true;
+                    const angle = Math.atan2(player.y - this.y, player.x - this.x);
+                    this.facingLeft = (player.x < this.x);
+                    this.x += Math.cos(angle) * this.speed * deltaTime;
+                    this.y += Math.sin(angle) * this.speed * deltaTime;
+
+                    if (dist < this.radius + player.radius && player.invulnerableTimer <= 0) {
+                        if (player.yellowHearts > 0) player.yellowHearts--;
+                        else player.health--;
+
+                        player.invulnerableTimer = 1.0;
+                        playSound('damage');
+                        updateHeartsUI();
+
+                        if (player.health <= 0 && player.yellowHearts <= 0) {
+                            gameOverModal.style.display = 'block';
+                        }
+                    }
+                }
+            }
+
+            draw() {
+                if (!this.alive) return;
+                ctx.save();
+                
+                // Render 3 Hearts above the Dinosaur when aggroed
+                if (this.isAggroed) {
+                    const heartsCount = Math.ceil((this.hp / this.maxHp) * 3);
+                    let heartsStr = "";
+                    for (let i = 0; i < 3; i++) {
+                        heartsStr += (i < heartsCount) ? "❤️" : "🖤";
+                    }
+                    ctx.font = '14px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(heartsStr, this.x, this.y - 32);
+                }
+
+                ctx.translate(this.x, this.y);
+                if (!this.facingLeft) ctx.scale(-1, 1);
+                ctx.font = '44px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText(this.sprite, 0, 0);
+                ctx.restore();
+            }
+        }
+
         function getOrCreateChunk(gx, gy) {
             const key = `${gx},${gy}`;
             if (worldMap[key]) return worldMap[key];
@@ -1027,6 +1204,11 @@
                 const numMonsters = Math.floor(Math.random() * 2) + 1;
                 for (let i = 0; i < numMonsters; i++) {
                     monsters.push(new Monster(100 + Math.random() * 600, 100 + Math.random() * 400));
+                }
+
+                // Spawns neutral Dinosaur Monster
+                if (Math.random() < 0.6) {
+                    monsters.push(new DinosaurMonster(150 + Math.random() * 500, 150 + Math.random() * 300));
                 }
             }
 
@@ -1110,10 +1292,7 @@
                 if (!m.alive) return;
                 const dist = Math.hypot(player.x - m.x, player.y - m.y);
                 if (dist < 55) {
-                    m.alive = false;
-                    questState.monstersDefeated++;
-                    updateQuestProgress();
-                    playSound('hit');
+                    m.takeDamage(1.0); // Sword deals 1.0 HP Damage
                 }
             });
         }
@@ -1650,6 +1829,23 @@
 
             ctx.restore();
 
+            // Draw Charge Bar for PC Bow & Arrow
+            if (isChargingBow && !isMobile) {
+                const barWidth = 40;
+                const barHeight = 6;
+                const progress = Math.min(bowChargeTimer / BOW_MAX_CHARGE_TIME, 1.0);
+
+                ctx.save();
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+                ctx.fillRect(player.x - barWidth / 2, player.y - 30, barWidth, barHeight);
+                ctx.fillStyle = progress >= 1.0 ? '#2ecc71' : '#f1c40f';
+                ctx.fillRect(player.x - barWidth / 2, player.y - 30, barWidth * progress, barHeight);
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(player.x - barWidth / 2, player.y - 30, barWidth, barHeight);
+                ctx.restore();
+            }
+
             if (player.isAttacking) {
                 const progress = 1 - (player.attackTimer / ATTACK_DURATION);
                 const startAngle = -Math.PI / 2;
@@ -1694,6 +1890,10 @@
             const deltaTime = (currentTime - lastTime) / 1000;
             lastTime = currentTime;
 
+            if (isChargingBow) {
+                bowChargeTimer += deltaTime;
+            }
+
             drawGrassBackground(player.gridX, player.gridY);
 
             updatePlayer(deltaTime);
@@ -1723,6 +1923,26 @@
                     ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
                     ctx.fill();
                 }
+            }
+
+            // Arrow logic
+            for (let i = arrows.length - 1; i >= 0; i--) {
+                const arrow = arrows[i];
+                arrow.update(deltaTime);
+                arrow.draw();
+
+                if (!arrow.alive) {
+                    arrows.splice(i, 1);
+                    continue;
+                }
+
+                chunk.monsters.forEach(m => {
+                    if (!m.alive) return;
+                    if (Math.hypot(arrow.x - m.x, arrow.y - m.y) < m.radius + arrow.radius) {
+                        m.takeDamage(arrow.damage); // Arrow deals 0.5 HP damage
+                        arrow.alive = false;
+                    }
+                });
             }
 
             activeNearbyBush = null;
