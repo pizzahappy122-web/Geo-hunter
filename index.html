@@ -75,7 +75,7 @@
       color: #94a3b8;
     }
 
-    /* --- CENTERED TRACKABLE POPUP UI --- */
+    /* --- CENTERED POPUP MODAL OVERLAY --- */
     .trackable-overlay {
       position: fixed;
       top: 0;
@@ -157,11 +157,11 @@
       transition: background-color 0.2s;
     }
 
-    .btn-claim {
+    .btn-take {
       background: #10b981;
       color: #022c22;
     }
-    .btn-claim:hover { background: #34d399; }
+    .btn-take:hover { background: #34d399; }
 
     .btn-deposit {
       background: #3b82f6;
@@ -187,21 +187,21 @@
     </div>
   </div>
 
-  <!-- Main Game World Area -->
+  <!-- Main Game Canvas -->
   <canvas id="gameCanvas" width="800" height="500"></canvas>
 
   <div id="instructions">
-    Use <b>WASD</b> or <b>Arrow Keys</b> to Move. Walk up to a Geocache or Bush and press <b>E</b> or <b>SPACE</b> to search!
+    Use <b>WASD</b> or <b>Arrow Keys</b> to Move. Walk up to a Geocache and press <b>E</b> or <b>SPACE</b> to search!
   </div>
 
   <!-- CENTERED POPUP MODAL OVERLAY -->
   <div id="trackable-overlay" class="trackable-overlay">
     <div class="trackable-modal">
-      <h2 id="modal-title" class="trackable-title">Trackable Discovered!</h2>
+      <h2 id="modal-title" class="trackable-title">Trackable Found!</h2>
       <div id="modal-emoji" class="trackable-icon">🤣</div>
-      <p id="modal-text" class="trackable-desc">You found a trackable item! Would you like to pick it up?</p>
+      <p id="modal-text" class="trackable-desc">You found a trackable item! Would you like to take it?</p>
       <div id="modal-buttons" class="trackable-btn-group">
-        <button id="btn-primary" class="trackable-btn btn-claim">Claim Trackable</button>
+        <button id="btn-primary" class="trackable-btn btn-take">Take Trackable</button>
         <button id="btn-secondary" class="trackable-btn btn-close">Leave</button>
       </div>
     </div>
@@ -213,8 +213,6 @@
 
     // --- GAME ENGINE STATE ---
     const TILE_SIZE = 40;
-    const GRID_SIZE = 20; // 20x20 Grid World (800x800 total, viewport scrolling)
-    
     const EMOJIS = ['🤣', '😎', '😀', '⭐', '💎'];
 
     let player = {
@@ -307,15 +305,15 @@
       const btnPrimary = document.getElementById('btn-primary');
       const btnSecondary = document.getElementById('btn-secondary');
 
-      // CASE 1: Cache contains a Trackable -> Claim It
+      // CASE 1: Cache contains a Trackable -> Take It Immediately
       if (nearbyCache.trackable) {
         const trackable = nearbyCache.trackable;
         modalTitle.textContent = "Trackable Found!";
         modalEmoji.textContent = trackable.emoji;
-        modalText.textContent = `You found a Trackable (${trackable.emoji}) inside this cache! Add it to your bag?`;
+        modalText.textContent = `You found a Trackable (${trackable.emoji}) inside this geocache!`;
         
-        btnPrimary.className = "trackable-btn btn-claim";
-        btnPrimary.textContent = "Claim Trackable";
+        btnPrimary.className = "trackable-btn btn-take";
+        btnPrimary.textContent = "Take Trackable";
         btnPrimary.onclick = () => {
           player.inventory.push(trackable);
           nearbyCache.trackable = null;
@@ -326,15 +324,15 @@
         btnSecondary.onclick = closeModal;
         openModal();
       } 
-      // CASE 2: Cache is empty AND player has an item in inventory -> Deposit It
+      // CASE 2: Cache is empty AND player has an item -> Deposit It
       else if (player.inventory.length > 0) {
         const trackable = player.inventory[0];
         modalTitle.textContent = "Deposit Trackable";
         modalEmoji.textContent = trackable.emoji;
-        modalText.textContent = `Do you want to deposit ${trackable.emoji} into this empty cache?`;
+        modalText.textContent = `Do you want to deposit ${trackable.emoji} into this empty geocache?`;
 
         btnPrimary.className = "trackable-btn btn-deposit";
-        btnPrimary.textContent = "Deposit Item";
+        btnPrimary.textContent = "Deposit Trackable";
         btnPrimary.onclick = () => {
           const item = player.inventory.shift();
           
