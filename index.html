@@ -710,6 +710,14 @@
             health: 3, maxHealth: 3, yellowHearts: 0, invulnerableTimer: 0
         };
 
+        let mousePos = { x: canvas.width / 2, y: canvas.height / 2 };
+        
+        window.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mousePos.x = (e.clientX - rect.left) * (canvas.width / rect.width);
+            mousePos.y = (e.clientY - rect.top) * (canvas.height / rect.height);
+        });
+
         let inventory = [
             { name: "Wooden Sword", type: "weapon", icon: "🗡️" },
             null, null, null, null
@@ -750,10 +758,23 @@
                 ctx.save();
                 ctx.translate(this.x, this.y);
                 ctx.rotate(this.angle);
-                ctx.font = '18px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText('🏹', 0, 0);
+                
+                // Draw little rotated projectile arrow
+                ctx.strokeStyle = '#f1c40f';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(-10, 0);
+                ctx.lineTo(10, 0);
+                ctx.stroke();
+
+                ctx.fillStyle = '#e74c3c';
+                ctx.beginPath();
+                ctx.moveTo(10, 0);
+                ctx.lineTo(4, -4);
+                ctx.lineTo(4, 4);
+                ctx.closePath();
+                ctx.fill();
+
                 ctx.restore();
             }
         }
@@ -772,11 +793,7 @@
             const item = inventory[selectedSlotIndex];
             if (isChargingBow && item && item.type === 'bow' && e.button === 0) {
                 if (bowChargeTimer >= BOW_MAX_CHARGE_TIME) {
-                    const rect = canvas.getBoundingClientRect();
-                    const mouseX = (e.clientX - rect.left) * (canvas.width / rect.width);
-                    const mouseY = (e.clientY - rect.top) * (canvas.height / rect.height);
-                    
-                    arrows.push(new Arrow(player.x, player.y, mouseX, mouseY));
+                    arrows.push(new Arrow(player.x, player.y, mousePos.x, mousePos.y));
                     playSound('bow_shoot');
                 }
             }
@@ -971,7 +988,8 @@
             draw() {
                 ctx.save();
                 ctx.translate(this.x, this.y);
-                if (this.direction === -1) ctx.scale(-1, 1);
+                // Flip direction logic so turtle faces forward
+                if (this.direction === 1) ctx.scale(-1, 1);
                 ctx.font = '26px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
                 ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                 ctx.fillText(this.emoji, 0, 0);
@@ -1012,7 +1030,7 @@
                 this.detectionRange = 180; this.isChasing = false;
                 this.alive = true; this.facingLeft = true;
                 this.sprite = '🦖';
-                this.hp = 1.0; // Normal monster HP (1 Sword hit or 2 Bow hits)
+                this.hp = 1.0;
                 this.isDino = false;
             }
 
@@ -1088,13 +1106,12 @@
             }
         }
 
-        // --- NEW DINOSAUR MONSTER CLASS ---
         class DinosaurMonster extends Monster {
             constructor(x, y) {
                 super(x, y);
                 this.sprite = '🦕';
-                this.speed = 65; // Slower than normal monster (110)
-                this.hp = 3.0; // Requires 4 sword hits (1.0 each) or 6 bow hits (0.5 each)
+                this.speed = 65;
+                this.hp = 3.0;
                 this.maxHp = 3.0;
                 this.isAggroed = false;
                 this.isDino = true;
@@ -1110,7 +1127,6 @@
                     updateQuestProgress();
                     playSound('hit');
 
-                    // Drop Bow & Arrow on PC/Mobile if player doesn't already have it
                     const emptySlot = inventory.findIndex(s => s === null);
                     if (emptySlot !== -1 && !inventory.some(i => i && i.type === 'bow')) {
                         inventory[emptySlot] = { name: "Bow & Arrow", type: "bow", icon: "🏹" };
@@ -1125,7 +1141,6 @@
                 if (!this.alive || (player.health <= 0 && player.yellowHearts <= 0)) return;
                 const dist = Math.hypot(player.x - this.x, player.y - this.y);
 
-                // Only chase and attack if aggroed (hit first)
                 if (this.isAggroed) {
                     this.isChasing = true;
                     const angle = Math.atan2(player.y - this.y, player.x - this.x);
@@ -1152,7 +1167,6 @@
                 if (!this.alive) return;
                 ctx.save();
                 
-                // Render 3 Hearts above the Dinosaur when aggroed
                 if (this.isAggroed) {
                     const heartsCount = Math.ceil((this.hp / this.maxHp) * 3);
                     let heartsStr = "";
@@ -1206,7 +1220,6 @@
                     monsters.push(new Monster(100 + Math.random() * 600, 100 + Math.random() * 400));
                 }
 
-                // Spawns neutral Dinosaur Monster
                 if (Math.random() < 0.6) {
                     monsters.push(new DinosaurMonster(150 + Math.random() * 500, 150 + Math.random() * 300));
                 }
@@ -1292,7 +1305,7 @@
                 if (!m.alive) return;
                 const dist = Math.hypot(player.x - m.x, player.y - m.y);
                 if (dist < 55) {
-                    m.takeDamage(1.0); // Sword deals 1.0 HP Damage
+                    m.takeDamage(1.0);
                 }
             });
         }
@@ -1829,6 +1842,24 @@
 
             ctx.restore();
 
+            // --- PIVOTING BOW EMOJI IMPLEMENTATION ---
+            const currentItem = inventory[selectedSlotIndex];
+            if (currentItem && currentItem.type === 'bow') {
+                const aimAngle = Math.atan2(mousePos.y - player.y, mousePos.x - player.x);
+
+                ctx.save();
+                ctx.translate(player.x, player.y);
+                ctx.rotate(aimAngle);
+
+                // Draw Pivoting Bow Emoji offset from player center
+                ctx.font = '26px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('🏹', 22, 0);
+
+                ctx.restore();
+            }
+
             // Draw Charge Bar for PC Bow & Arrow
             if (isChargingBow && !isMobile) {
                 const barWidth = 40;
@@ -1939,7 +1970,7 @@
                 chunk.monsters.forEach(m => {
                     if (!m.alive) return;
                     if (Math.hypot(arrow.x - m.x, arrow.y - m.y) < m.radius + arrow.radius) {
-                        m.takeDamage(arrow.damage); // Arrow deals 0.5 HP damage
+                        m.takeDamage(arrow.damage);
                         arrow.alive = false;
                     }
                 });
