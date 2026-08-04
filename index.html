@@ -160,6 +160,10 @@
             z-index: 25;
             cursor: pointer;
         }
+        #mobile-sword-btn:active {
+            background: #c0392b;
+            transform: scale(0.95);
+        }
 
         #potion-prompt {
             display: none;
@@ -184,6 +188,7 @@
             to { transform: translateX(-50%) translateY(-5px); }
         }
 
+        /* Modal Styles */
         .game-modal {
             display: none;
             position: absolute;
@@ -216,6 +221,9 @@
             font-weight: bold;
             cursor: pointer;
         }
+        .modal-btn:hover, .modal-btn:active {
+            background: #2c3e50;
+        }
         .modal-btn.confirm {
             background: #27ae60;
             border-color: #2ecc71;
@@ -224,6 +232,7 @@
             background: #e74c3c;
         }
 
+        /* Trackable Light Beams Overlay */
         #trackable-overlay {
             display: none;
             position: absolute;
@@ -265,6 +274,7 @@
             filter: drop-shadow(0 0 10px #f1c40f);
         }
 
+        /* Quest Banner Slide-In Overlay */
         #quest-banner-container {
             display: none;
             position: absolute;
@@ -340,9 +350,16 @@
             letter-spacing: 1px;
         }
 
-        #game-over-modal { border-color: #e74c3c; }
-        #game-over-modal h3 { color: #e74c3c; font-size: 28px; }
+        /* Game Over Modal */
+        #game-over-modal {
+            border-color: #e74c3c;
+        }
+        #game-over-modal h3 {
+            color: #e74c3c;
+            font-size: 28px;
+        }
 
+        /* Quest Card Styling */
         .quest-card {
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.15);
@@ -351,8 +368,16 @@
             margin-bottom: 10px;
             text-align: left;
         }
-        .quest-title { font-weight: bold; font-size: 14px; color: #e67e22; }
-        .quest-progress { font-size: 13px; margin: 4px 0; color: #ccc; }
+        .quest-title {
+            font-weight: bold;
+            font-size: 14px;
+            color: #e67e22;
+        }
+        .quest-progress {
+            font-size: 13px;
+            margin: 4px 0;
+            color: #ccc;
+        }
         .code-box {
             font-family: monospace;
             background: #000;
@@ -364,7 +389,9 @@
             margin-top: 4px;
             letter-spacing: 1px;
         }
-        .code-locked { color: #7f8c8d; }
+        .code-locked {
+            color: #7f8c8d;
+        }
 
         #steal-warning {
             display: none;
@@ -415,13 +442,17 @@
         <div id="mobile-sword-btn">🗡️</div>
 
         <div id="hotbar">
-            <div class="slot selected" onclick="selectSlot(0)"><span class="slot-num">1</span><span class="item-icon">🗡️</span></div>
+            <div class="slot selected" onclick="selectSlot(0)">
+                <span class="slot-num">1</span>
+                <span class="item-icon">🗡️</span>
+            </div>
             <div class="slot" onclick="selectSlot(1)"><span class="slot-num">2</span><span class="item-icon"></span></div>
             <div class="slot" onclick="selectSlot(2)"><span class="slot-num">3</span><span class="item-icon"></span></div>
             <div class="slot" onclick="selectSlot(3)"><span class="slot-num">4</span><span class="item-icon"></span></div>
             <div class="slot" onclick="selectSlot(4)"><span class="slot-num">5</span><span class="item-icon"></span></div>
         </div>
 
+        <!-- Potion Confirmation Modal -->
         <div id="potion-modal" class="game-modal">
             <h3 id="potion-modal-title">Drink Potion?</h3>
             <p id="potion-modal-desc" style="color: #ccc; font-size: 14px; margin-bottom: 15px;">Would you like to drink this Health Potion?</p>
@@ -429,6 +460,7 @@
             <button class="modal-btn warning" onclick="closeModal('potion-modal')">No, Cancel</button>
         </div>
 
+        <!-- Quest Completion Animated Banner -->
         <div id="quest-banner-container">
             <div class="banner-sunburst-bg"></div>
             <div class="ribbon-banner">
@@ -438,6 +470,7 @@
             </div>
         </div>
 
+        <!-- Cache Modal -->
         <div id="cache-modal" class="game-modal">
             <h3 id="modal-title">Geocache Found!</h3>
             <canvas id="cache-canvas-preview" width="100" height="70"></canvas>
@@ -445,6 +478,7 @@
             <button class="modal-btn warning" onclick="closeModal('cache-modal')">Close [E]</button>
         </div>
 
+        <!-- Trackable Showcase Overlay -->
         <div id="trackable-overlay" class="game-modal">
             <div class="sunburst-container">
                 <div class="sunburst"></div>
@@ -455,26 +489,32 @@
             <button class="modal-btn warning" style="width: 200px;" onclick="closeModal('trackable-overlay')">Close [E]</button>
         </div>
 
+        <!-- Quest Modal -->
         <div id="quest-modal" class="game-modal">
             <h3>📜 Active Quests</h3>
+            
             <div class="quest-card">
                 <div class="quest-title">Quest 1: Master Geocacher!</div>
                 <div class="quest-progress">• Find 20 Caches (<span id="q1-count">0</span> / 20)</div>
                 <div>Code 1: <span id="q1-code" class="code-box code-locked">🔒 LOCKED</span></div>
             </div>
+
             <div class="quest-card">
                 <div class="quest-title">Quest 2: Monster Hunter!</div>
                 <div class="quest-progress">• Defeat 10 Monsters (<span id="q2-monsters">0</span> / 10)</div>
                 <div>Code 2: <span id="q2-code" class="code-box code-locked">🔒 LOCKED</span></div>
             </div>
+
             <div class="quest-card">
                 <div class="quest-title">Quest 3: Trackable Lover</div>
                 <div class="quest-progress">• Move 5 Trackables to new Caches (<span id="q3-trackables">0</span> / 5)</div>
                 <div>Code 3: <span id="q3-code" class="code-box code-locked">🔒 LOCKED</span></div>
             </div>
+
             <button class="modal-btn warning" onclick="closeModal('quest-modal')">Close [Q / E]</button>
         </div>
 
+        <!-- Game Over Modal -->
         <div id="game-over-modal" class="game-modal">
             <h3>💀 GAME OVER</h3>
             <p style="color: #ccc; font-size: 14px;">You ran out of health!</p>
@@ -495,23 +535,28 @@
         function playSound(type) {
             if (!audioCtx) audioCtx = new AudioCtx();
             if (audioCtx.state === 'suspended') audioCtx.resume();
+
             const now = audioCtx.currentTime;
 
             if (type === 'sword') {
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
                 osc.connect(gain); gain.connect(audioCtx.destination);
-                osc.type = 'sine'; osc.frequency.setValueAtTime(500, now);
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(500, now);
                 osc.frequency.exponentialRampToValueAtTime(60, now + 0.15);
-                gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
                 osc.start(now); osc.stop(now + 0.15);
             } else if (type === 'hit') {
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
                 osc.connect(gain); gain.connect(audioCtx.destination);
-                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(140, now);
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(140, now);
                 osc.frequency.exponentialRampToValueAtTime(25, now + 0.2);
-                gain.gain.setValueAtTime(0.4, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                gain.gain.setValueAtTime(0.4, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
                 osc.start(now); osc.stop(now + 0.2);
             } else if (type === 'coin') {
                 const osc1 = audioCtx.createOscillator();
@@ -521,31 +566,38 @@
                 osc1.type = 'sine'; osc2.type = 'sine';
                 osc1.frequency.setValueAtTime(987.77, now);
                 osc1.frequency.setValueAtTime(1318.51, now + 0.08);
-                gain.gain.setValueAtTime(0.25, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                gain.gain.setValueAtTime(0.25, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
                 osc1.start(now); osc1.stop(now + 0.3);
             } else if (type === 'heal') {
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
                 osc.connect(gain); gain.connect(audioCtx.destination);
-                osc.type = 'triangle'; osc.frequency.setValueAtTime(220, now);
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(220, now);
                 osc.frequency.exponentialRampToValueAtTime(523.25, now + 0.25);
-                gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
                 osc.start(now); osc.stop(now + 0.25);
             } else if (type === 'overheal') {
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
                 osc.connect(gain); gain.connect(audioCtx.destination);
-                osc.type = 'sine'; osc.frequency.setValueAtTime(300, now);
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(300, now);
                 osc.frequency.exponentialRampToValueAtTime(800, now + 0.35);
-                gain.gain.setValueAtTime(0.35, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+                gain.gain.setValueAtTime(0.35, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
                 osc.start(now); osc.stop(now + 0.35);
             } else if (type === 'damage') {
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
                 osc.connect(gain); gain.connect(audioCtx.destination);
-                osc.type = 'square'; osc.frequency.setValueAtTime(180, now);
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(180, now);
                 osc.frequency.exponentialRampToValueAtTime(40, now + 0.3);
-                gain.gain.setValueAtTime(0.5, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                gain.gain.setValueAtTime(0.5, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
                 osc.start(now); osc.stop(now + 0.3);
             }
         }
@@ -583,15 +635,53 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
-        // Render plain dark green ground directly without grass sprites
+        const GAME_SPRITES = {
+            grassPattern: 'grass.png',
+            rockSheet: 'Rock1.png',      
+            pineTreeSheet: 'Tree1.png',  
+            leafyTreeSheet: 'Tree1.png', 
+            bushImage: 'bush.png'       
+        };
+
+        const images = {};
+        let grassPatternObj = null;
+
+        for (const [key, path] of Object.entries(GAME_SPRITES)) {
+            if (path && path.trim() !== '') {
+                images[key] = new Image();
+                images[key].src = path;
+                if (key === 'grassPattern') {
+                    images[key].onload = () => {
+                        grassPatternObj = ctx.createPattern(images[key], 'repeat');
+                    };
+                }
+            }
+        }
+
+        const GRASS_SCALE = 0.3;
+
         function drawGrassBackground(gx, gy) {
             ctx.save();
-            ctx.fillStyle = '#1b3815';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            if (grassPatternObj) {
+                ctx.save();
+                ctx.scale(GRASS_SCALE, GRASS_SCALE);
+                const tileWidth = (images.grassPattern.width || 905);
+                const tileHeight = (images.grassPattern.height || 588);
+                const offsetX = -(((gx * canvas.width) / GRASS_SCALE) % tileWidth);
+                const offsetY = -(((gy * canvas.height) / GRASS_SCALE) % tileHeight);
+                ctx.translate(offsetX, offsetY);
+                ctx.fillStyle = grassPatternObj;
+                ctx.fillRect(-offsetX, -offsetY, canvas.width / GRASS_SCALE, canvas.height / GRASS_SCALE);
+                ctx.restore();
+                ctx.fillStyle = 'rgba(10, 35, 10, 0.45)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            } else {
+                ctx.fillStyle = '#1b3815';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
             ctx.restore();
         }
 
-        // --- ANIMATED PLAYER SPRITE LOADING ---
         const playerSprites = { idle: [], run: [] };
 
         for (let i = 1; i <= 6; i++) {
@@ -633,20 +723,41 @@
         const INTERACTION_DISTANCE = 55;
 
         const questState = {
-            q1Completed: false, cachesFound: 0, cachesTarget: 20, code1: "MASTER-9921",
-            q2Completed: false, monstersDefeated: 0, monstersTarget: 10, code2: "SLAYER-7740",
-            q3Completed: false, trackablesRelocated: 0, trackablesTarget: 5, code3: "LOVER-3310"
+            q1Completed: false,
+            cachesFound: 0,
+            cachesTarget: 20,
+            code1: "MASTER-9921",
+
+            q2Completed: false,
+            monstersDefeated: 0,
+            monstersTarget: 10,
+            code2: "SLAYER-7740",
+
+            q3Completed: false,
+            trackablesRelocated: 0,
+            trackablesTarget: 5,
+            code3: "LOVER-3310"
         };
 
         const ATTACK_DURATION = 0.25;
 
         let player = {
-            gridX: 0, gridY: 0,
-            x: canvas.width / 2, y: canvas.height / 2,
-            radius: 12, speed: 220,
-            facingLeft: false, animTimer: 0, animFrame: 0,
-            isMoving: false, isAttacking: false, attackTimer: 0,
-            health: 3, maxHealth: 3, yellowHearts: 0, invulnerableTimer: 0
+            gridX: 0,
+            gridY: 0,
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            radius: 12,
+            speed: 220,
+            facingLeft: false,
+            animTimer: 0,
+            animFrame: 0,
+            isMoving: false,
+            isAttacking: false,
+            attackTimer: 0,
+            health: 3,
+            maxHealth: 3,
+            yellowHearts: 0,
+            invulnerableTimer: 0
         };
 
         let inventory = [
@@ -657,8 +768,12 @@
 
         function updateHeartsUI() {
             let heartsStr = "";
-            for (let i = 0; i < player.maxHealth; i++) heartsStr += (i < player.health) ? "❤️" : "🖤";
-            for (let i = 0; i < player.yellowHearts; i++) heartsStr += "💛";
+            for (let i = 0; i < player.maxHealth; i++) {
+                heartsStr += (i < player.health) ? "❤️" : "🖤";
+            }
+            for (let i = 0; i < player.yellowHearts; i++) {
+                heartsStr += "💛";
+            }
             heartsContainer.textContent = heartsStr;
         }
 
@@ -673,13 +788,18 @@
                 iconSpan.textContent = item ? item.icon : "";
             });
 
+            // Update action UI when holding a potion
             const currentItem = inventory[selectedSlotIndex];
             if (currentItem && (currentItem.type === 'hp_potion' || currentItem.type === 'overheal_potion')) {
                 potionPrompt.style.display = 'block';
-                if (isMobile) mobileSwordBtn.textContent = '🧪';
+                if (isMobile) {
+                    mobileSwordBtn.textContent = '🧪';
+                }
             } else {
                 potionPrompt.style.display = 'none';
-                if (isMobile) mobileSwordBtn.textContent = '🗡️';
+                if (isMobile) {
+                    mobileSwordBtn.textContent = '🗡️';
+                }
             }
         }
 
@@ -694,14 +814,21 @@
             const holdsCache = inventory.some(item => item && item.type === 'cache');
             if (holdsCache) {
                 activeHeldCacheTime += deltaTime;
-                if (activeHeldCacheTime > 5) stealWarning.style.display = 'block';
+                if (activeHeldCacheTime > 5) {
+                    stealWarning.style.display = 'block';
+                }
             } else {
                 activeHeldCacheTime = 0;
                 stealWarning.style.display = 'none';
             }
         }
 
-        let joystick = { active: false, touchId: null, startX: 0, startY: 0, currX: 0, currY: 0, maxRadius: 50 };
+        let joystick = {
+            active: false, touchId: null,
+            startX: 0, startY: 0,
+            currX: 0, currY: 0,
+            maxRadius: 50
+        };
 
         const keys = {};
         let worldMap = {};
@@ -715,41 +842,18 @@
                 this.id = bushCounter++;
                 this.x = x; this.y = y;
                 this.radius = 26;
-                
-                // --- STRICT MUTUAL EXCLUSIVITY LOGIC ---
-                this.hasCache = Math.random() < 0.45;
+                this.hasCache = Math.random() < 0.5;
                 this.cacheTaken = false;
-                this.signed = false;
-
-                if (this.hasCache) {
-                    // STRICT NO-POTION RULE IF CACHE IS PRESENT
-                    this.hasPotion = false;
-                    this.hasOverhealPotion = false;
-                    this.hasTrackable = Math.random() < 0.4;
-                    this.trackableEmoji = getRandomTrackableEmoji();
-                } else {
-                    this.hasTrackable = false;
-                    this.trackableEmoji = null;
-
-                    // Weighted Potion Drop Rates (70% None, 24% Health Potion, 6% Overheal Potion)
-                    const pRoll = Math.random();
-                    if (pRoll < 0.24) {
-                        this.hasPotion = true;
-                        this.hasOverhealPotion = false;
-                    } else if (pRoll < 0.30) {
-                        this.hasPotion = false;
-                        this.hasOverhealPotion = true;
-                    } else {
-                        this.hasPotion = false;
-                        this.hasOverhealPotion = false;
-                    }
-                }
-
+                this.hasTrackable = Math.random() < 0.4;
+                this.trackableEmoji = getRandomTrackableEmoji();
+                this.trackableTaken = false;
+                this.hasPotion = Math.random() < 0.25;
+                this.hasOverhealPotion = Math.random() < 0.15;
                 this.potionTaken = false;
                 this.overhealTaken = false;
-                this.trackableTaken = false;
                 this.isPermanentlyLockedTrackable = false;
                 this.originalTrackableSourceId = this.id;
+                this.signed = false;
                 this.rustleTimer = 0;
                 this.leaves = [
                     { dx: 0, dy: 0, r: this.radius },
@@ -781,338 +885,653 @@
                 }
 
                 ctx.save();
-                ctx.translate(this.x + shakeX, this.y);
+                ctx.translate(shakeX, 0);
 
-                // Procedural Vector Bush Rendering
-                ctx.fillStyle = '#1e5e23';
-                this.leaves.forEach(l => {
-                    ctx.beginPath();
-                    ctx.arc(l.dx, l.dy, l.r, 0, Math.PI * 2);
-                    ctx.fill();
-                });
+                const img = images.bushImage;
+                if (img && img.complete && img.naturalWidth !== 0) {
+                    ctx.drawImage(img, this.x - 30, this.y - 30, 60, 60);
+                } else {
+                    ctx.fillStyle = this.signed ? '#27ae60' : '#2b752f';
+                    for (const leaf of this.leaves) {
+                        ctx.beginPath();
+                        ctx.arc(this.x + leaf.dx, this.y + leaf.dy, leaf.r, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
 
-                ctx.fillStyle = '#2d8a35';
-                this.leaves.forEach(l => {
-                    ctx.beginPath();
-                    ctx.arc(l.dx * 0.8, l.dy * 0.8, l.r * 0.85, 0, Math.PI * 2);
-                    ctx.fill();
-                });
+                if (this.signed) {
+                    drawAmmoBox(ctx, this.x - 11, this.y - 7, 22, 14);
+                }
 
                 ctx.restore();
             }
         }
 
-        function createScreenData(gx, gy) {
-            let bushes = [];
-            let numBushes = Math.floor(Math.random() * 4) + 3;
-            for (let i = 0; i < numBushes; i++) {
-                let bx = Math.random() * (canvas.width - 160) + 80;
-                let by = Math.random() * (canvas.height - 160) + 80;
-                bushes.push(new Bush(bx, by));
+        class DecorativeTurtle {
+            constructor(x, y, minX, maxX) {
+                this.x = x; this.y = y;
+                this.minX = minX; this.maxX = maxX;
+                this.speed = 25; this.direction = 1;
+                this.radius = 16; this.emoji = '🐢';
             }
 
-            let monsters = [];
-            let numMonsters = Math.floor(Math.random() * 3);
-            for (let i = 0; i < numMonsters; i++) {
-                let mx = Math.random() * (canvas.width - 160) + 80;
-                let my = Math.random() * (canvas.height - 160) + 80;
-                monsters.push({
-                    x: mx, y: my, radius: 14, speed: 65,
-                    health: 2, maxHealth: 2, facingLeft: false,
-                    attackCooldown: 0
-                });
+            update(deltaTime) {
+                this.x += this.speed * this.direction * deltaTime;
+                if (this.x >= this.maxX) { this.x = this.maxX; this.direction = -1; }
+                else if (this.x <= this.minX) { this.x = this.minX; this.direction = 1; }
             }
 
-            return { bushes: bushes, monsters: monsters };
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                if (this.direction === -1) ctx.scale(-1, 1);
+                ctx.font = '26px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText(this.emoji, 0, 0);
+                ctx.restore();
+            }
         }
 
-        function getScreenData(gx, gy) {
-            let key = `${gx},${gy}`;
-            if (!worldMap[key]) {
-                worldMap[key] = createScreenData(gx, gy);
+        class Rock {
+            constructor(x, y) { this.x = x; this.y = y; this.radius = 22; }
+            draw() {
+                const img = images.rockSheet;
+                if (img && img.complete && img.naturalWidth !== 0) {
+                    ctx.drawImage(img, this.x - 30, this.y - 25, 60, 50);
+                } else {
+                    ctx.fillStyle = '#7f8c8d';
+                    ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.fill();
+                }
             }
-            return worldMap[key];
         }
 
-        function triggerQuestBanner(title, code) {
-            bannerQuestTitle.textContent = title;
-            bannerQuestCoords.textContent = code;
+        class Tree {
+            constructor(x, y) { this.x = x; this.y = y; this.trunkRadius = 14; }
+            drawCanopy() {
+                const img = images.pineTreeSheet;
+                if (img && img.complete && img.naturalWidth !== 0) {
+                    ctx.drawImage(img, this.x - 40, this.y - 80, 80, 95);
+                } else {
+                    ctx.fillStyle = 'rgba(46, 125, 50, 0.85)';
+                    ctx.beginPath(); ctx.arc(this.x, this.y - 12, 40, 0, Math.PI * 2); ctx.fill();
+                }
+            }
+        }
+
+        class Monster {
+            constructor(x, y) {
+                this.x = x; this.y = y;
+                this.radius = 18; this.speed = 110;
+                this.detectionRange = 180; this.isChasing = false;
+                this.alive = true; this.facingLeft = true;
+                this.sprite = '🦖';
+            }
+
+            update(deltaTime) {
+                if (!this.alive || (player.health <= 0 && player.yellowHearts <= 0)) return;
+                const dist = Math.hypot(player.x - this.x, player.y - this.y);
+                if (dist < this.detectionRange) {
+                    this.isChasing = true;
+                    const angle = Math.atan2(player.y - this.y, player.x - this.x);
+                    this.facingLeft = (player.x < this.x);
+                    this.x += Math.cos(angle) * this.speed * deltaTime;
+                    this.y += Math.sin(angle) * this.speed * deltaTime;
+                } else {
+                    this.isChasing = false;
+                }
+
+                if (dist < this.radius + player.radius) {
+                    let touchingSword = false;
+                    if (player.isAttacking) {
+                        const progress = 1 - (player.attackTimer / ATTACK_DURATION);
+                        const swordAngle = -Math.PI / 2 + (progress * Math.PI);
+                        const dir = player.facingLeft ? -1 : 1;
+                        const swordTipX = player.x + Math.cos(swordAngle) * 42 * dir;
+                        const swordTipY = player.y + Math.sin(swordAngle) * 42;
+
+                        if (Math.hypot(this.x - swordTipX, this.y - swordTipY) < this.radius + 20) {
+                            touchingSword = true;
+                        }
+                    }
+
+                    if (!touchingSword && player.invulnerableTimer <= 0) {
+                        if (player.yellowHearts > 0) player.yellowHearts--;
+                        else player.health--;
+
+                        player.invulnerableTimer = 1.0;
+                        playSound('damage');
+                        updateHeartsUI();
+
+                        if (player.health <= 0 && player.yellowHearts <= 0) {
+                            gameOverModal.style.display = 'block';
+                        }
+                    }
+                }
+            }
+
+            draw() {
+                if (!this.alive) return;
+                ctx.save();
+                if (this.isChasing) {
+                    ctx.fillStyle = '#e74c3c';
+                    ctx.font = 'bold 22px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('!', this.x, this.y - 28);
+                }
+                ctx.translate(this.x, this.y);
+                if (!this.facingLeft) ctx.scale(-1, 1);
+                ctx.font = '36px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText(this.sprite, 0, 0);
+                ctx.restore();
+            }
+        }
+
+        function getOrCreateChunk(gx, gy) {
+            const key = `${gx},${gy}`;
+            if (worldMap[key]) return worldMap[key];
+
+            const bushes = [], rocks = [], trees = [], monsters = [], turtles = [];
+            const isSpawn = (gx === 0 && gy === 0);
+
+            for (let i = 0; i < 4; i++) {
+                bushes.push(new Bush(80 + Math.random() * 640, 80 + Math.random() * 440));
+            }
+
+            const numRocks = isSpawn ? 3 : Math.floor(Math.random() * 3) + 5;
+            const numTrees = isSpawn ? 3 : Math.floor(Math.random() * 4) + 6;
+
+            for (let i = 0; i < numRocks; i++) {
+                rocks.push(new Rock(80 + Math.random() * 640, 80 + Math.random() * 440));
+            }
+
+            for (let i = 0; i < numTrees; i++) {
+                trees.push(new Tree(80 + Math.random() * 640, 80 + Math.random() * 440));
+            }
+
+            if (!isSpawn) {
+                const numMonsters = Math.floor(Math.random() * 2) + 1;
+                for (let i = 0; i < numMonsters; i++) {
+                    monsters.push(new Monster(100 + Math.random() * 600, 100 + Math.random() * 400));
+                }
+            }
+
+            if (Math.random() < 0.4) {
+                const startX = 150 + Math.random() * 500;
+                const startY = 150 + Math.random() * 300;
+                turtles.push(new DecorativeTurtle(startX, startY, startX - 80, startX + 80));
+            }
+
+            const chunk = { bushes, rocks, trees, monsters, turtles };
+            worldMap[key] = chunk;
+            return chunk;
+        }
+
+        getOrCreateChunk(0, 0);
+
+        function triggerQuestBanner(questTitle, questCode) {
+            bannerQuestTitle.textContent = questTitle;
+            bannerQuestCoords.textContent = questCode;
             questBannerContainer.style.display = 'flex';
-            setTimeout(() => { questBannerContainer.classList.add('slide-in'); }, 20);
+            playSound('coin');
+
+            setTimeout(() => { questBannerContainer.classList.add('slide-in'); }, 50);
             setTimeout(() => {
                 questBannerContainer.classList.remove('slide-in');
                 setTimeout(() => { questBannerContainer.style.display = 'none'; }, 600);
             }, 4500);
         }
 
-        function checkQuestCompletions() {
-            if (!questState.q1Completed && questState.cachesFound >= questState.cachesTarget) {
-                questState.q1Completed = true;
-                playSound('coin');
-                document.getElementById('q1-code').textContent = questState.code1;
-                document.getElementById('q1-code').classList.remove('code-locked');
-                triggerQuestBanner("Master Geocacher!", questState.code1);
-            }
-            if (!questState.q2Completed && questState.monstersDefeated >= questState.monstersTarget) {
-                questState.q2Completed = true;
-                playSound('coin');
-                document.getElementById('q2-code').textContent = questState.code2;
-                document.getElementById('q2-code').classList.remove('code-locked');
-                triggerQuestBanner("Monster Hunter!", questState.code2);
-            }
-            if (!questState.q3Completed && questState.trackablesRelocated >= questState.trackablesTarget) {
-                questState.q3Completed = true;
-                playSound('coin');
-                document.getElementById('q3-code').textContent = questState.code3;
-                document.getElementById('q3-code').classList.remove('code-locked');
-                triggerQuestBanner("Trackable Lover!", questState.code3);
-            }
-            document.getElementById('q1-count').textContent = questState.cachesFound;
-            document.getElementById('q2-monsters').textContent = questState.monstersDefeated;
-            document.getElementById('q3-trackables').textContent = questState.trackablesRelocated;
+        function respawnPlayer() {
+            player.health = player.maxHealth;
+            player.yellowHearts = 0;
+            player.invulnerableTimer = 0;
+            player.gridX = 0; player.gridY = 0;
+            player.x = canvas.width / 2; player.y = canvas.height / 2;
+            player.isAttacking = false;
+
+            questState.cachesFound = 0;
+            questState.monstersDefeated = 0;
+            questState.trackablesRelocated = 0;
+            questState.q1Completed = false;
+            questState.q2Completed = false;
+            questState.q3Completed = false;
+
+            inventory = [
+                { name: "Wooden Sword", type: "weapon", icon: "🗡️" },
+                null, null, null, null
+            ];
+            selectedSlotIndex = 0;
+
+            worldMap = {};
+            bushCounter = 0;
+            getOrCreateChunk(0, 0);
+
+            updateHeartsUI();
+            updateHotbarUI();
+            updateQuestProgress();
+
+            gameOverModal.style.display = 'none';
         }
 
-        function toggleQuestModal() {
-            if (questModal.style.display === 'block') {
-                questModal.style.display = 'none';
-            } else {
-                questModal.style.display = 'block';
+        function triggerActionOrAttack() {
+            if (player.health <= 0 && player.yellowHearts <= 0) return;
+            const selectedItem = inventory[selectedSlotIndex];
+
+            // If equipped with potion, prompt confirmation modal
+            if (selectedItem && (selectedItem.type === 'hp_potion' || selectedItem.type === 'overheal_potion')) {
+                openPotionConfirmation(selectedItem);
+                return;
             }
+
+            if (!selectedItem || selectedItem.type !== "weapon") return;
+
+            if (player.isAttacking) return;
+            player.isAttacking = true;
+            player.attackTimer = ATTACK_DURATION;
+
+            playSound('sword');
+
+            const chunk = getOrCreateChunk(player.gridX, player.gridY);
+            chunk.monsters.forEach(m => {
+                if (!m.alive) return;
+                const dist = Math.hypot(player.x - m.x, player.y - m.y);
+                if (dist < 55) {
+                    m.alive = false;
+                    questState.monstersDefeated++;
+                    updateQuestProgress();
+                    playSound('hit');
+                }
+            });
         }
 
-        function closeModal(id) {
-            document.getElementById(id).style.display = 'none';
+        function openPotionConfirmation(item) {
+            const titleEl = document.getElementById('potion-modal-title');
+            const descEl = document.getElementById('potion-modal-desc');
+
+            if (item.type === 'hp_potion') {
+                titleEl.textContent = "Drink Health Potion? 🧪";
+                descEl.textContent = "Would you like to drink this Health Potion to restore 1 Heart?";
+            } else if (item.type === 'overheal_potion') {
+                titleEl.textContent = "Drink Overheal Potion? 🏺";
+                descEl.textContent = "Would you like to drink this Overheal Potion to gain +3 Golden Hearts?";
+            }
+
+            potionModal.style.display = 'block';
         }
 
         function confirmDrinkPotion() {
             const item = inventory[selectedSlotIndex];
-            if (item && item.type === 'hp_potion') {
+            if (!item) return;
+
+            if (item.type === 'hp_potion') {
                 if (player.health < player.maxHealth) {
-                    player.health = Math.min(player.maxHealth, player.health + 1);
-                    inventory[selectedSlotIndex] = null;
-                    playSound('heal');
+                    player.health++;
                     updateHeartsUI();
-                    updateHotbarUI();
+                    playSound('heal');
+                    inventory[selectedSlotIndex] = null;
+                } else {
+                    alert("Health is already full!");
                 }
-            } else if (item && item.type === 'overheal_potion') {
-                player.yellowHearts += 1;
-                inventory[selectedSlotIndex] = null;
-                playSound('overheal');
+            } else if (item.type === 'overheal_potion') {
+                player.yellowHearts += 3;
                 updateHeartsUI();
-                updateHotbarUI();
+                playSound('overheal');
+                inventory[selectedSlotIndex] = null;
             }
+
+            updateHotbarUI();
             closeModal('potion-modal');
         }
 
-        function attemptUseSelectedItem() {
-            const item = inventory[selectedSlotIndex];
-            if (!item) return;
+        function handleTurtleInteractOrPlace() {
+            const selectedItem = inventory[selectedSlotIndex];
 
-            if (item.type === 'weapon') {
-                if (!player.isAttacking) {
-                    player.isAttacking = true;
-                    player.attackTimer = ATTACK_DURATION;
-                    playSound('sword');
-                    performAttack();
+            if (selectedItem && selectedItem.type === 'turtle') {
+                const chunk = getOrCreateChunk(player.gridX, player.gridY);
+                const placeX = player.x;
+                const placeY = player.y;
+
+                chunk.turtles.push(new DecorativeTurtle(placeX, placeY, Math.max(50, placeX - 80), Math.min(canvas.width - 50, placeX + 80)));
+                inventory[selectedSlotIndex] = null;
+                playSound('heal');
+                updateHotbarUI();
+                return;
+            }
+
+            if (activeNearbyTurtle) {
+                const emptyIndex = inventory.findIndex(slot => slot === null);
+                if (emptyIndex !== -1) {
+                    const chunk = getOrCreateChunk(player.gridX, player.gridY);
+                    const idx = chunk.turtles.indexOf(activeNearbyTurtle);
+                    if (idx !== -1) {
+                        chunk.turtles.splice(idx, 1);
+                        inventory[emptyIndex] = { name: "Turtle", type: "turtle", icon: "🐢" };
+                        playSound('coin');
+                        updateHotbarUI();
+                    }
+                } else {
+                    alert("Inventory Full!");
                 }
-            } else if (item.type === 'hp_potion') {
-                if (player.health < player.maxHealth) {
-                    document.getElementById('potion-modal-title').textContent = "Drink Health Potion?";
-                    document.getElementById('potion-modal-desc').textContent = "Restores 1 Red Heart.";
-                    potionModal.style.display = 'block';
-                }
-            } else if (item.type === 'overheal_potion') {
-                document.getElementById('potion-modal-title').textContent = "Drink Overheal Potion?";
-                document.getElementById('potion-modal-desc').textContent = "Grants 1 Extra Gold Heart (💛)!";
-                potionModal.style.display = 'block';
             }
         }
 
-        function performAttack() {
-            let currentData = getScreenData(player.gridX, player.gridY);
-            let attackRange = 50;
-            let attackAngle = player.facingLeft ? Math.PI : 0;
+        window.addEventListener('keydown', e => {
+            const key = e.key.toLowerCase();
+            keys[e.code] = true;
+            keys[key] = true;
 
-            currentData.monsters.forEach(m => {
-                let dx = m.x - player.x;
-                let dy = m.y - player.y;
-                let dist = Math.hypot(dx, dy);
+            if (['1', '2', '3', '4', '5'].includes(e.key)) {
+                selectSlot(parseInt(e.key) - 1);
+            }
 
-                if (dist < attackRange + m.radius) {
-                    let angleToMonster = Math.atan2(dy, dx);
-                    let diff = Math.abs(angleToMonster - attackAngle);
-                    if (diff > Math.PI) diff = Math.PI * 2 - diff;
+            if (key === 'q') {
+                toggleQuestModal();
+            } else if (key === 'f') {
+                handleTurtleInteractOrPlace();
+            } else if (key === 'e') {
+                if (potionModal.style.display === 'block') {
+                    closeModal('potion-modal');
+                } else if (questModal.style.display === 'block') {
+                    closeModal('quest-modal');
+                } else if (trackableOverlay.style.display === 'flex') {
+                    closeModal('trackable-overlay');
+                } else if (cacheModal.style.display === 'block') {
+                    closeModal('cache-modal');
+                } else if (activeNearbyBush) {
+                    interactWithBush(activeNearbyBush);
+                }
+            } else if (key === 'r') {
+                if (cacheModal.style.display === 'block') {
+                    const btn = document.getElementById('btn-take-cache');
+                    if (btn) btn.click();
+                }
+            } else if (key === 't') {
+                if (trackableOverlay.style.display === 'flex') {
+                    claimTrackable();
+                } else if (cacheModal.style.display === 'block') {
+                    const btn = document.getElementById('btn-inspect-trackable');
+                    if (btn) btn.click();
+                }
+            }
 
-                    if (diff < Math.PI / 2 || dist < player.radius + m.radius + 10) {
-                        m.health -= 1;
-                        playSound('hit');
-                        let knockbackDir = Math.atan2(dy, dx);
-                        m.x += Math.cos(knockbackDir) * 30;
-                        m.y += Math.sin(knockbackDir) * 30;
+            if (e.code === 'Space') {
+                triggerActionOrAttack();
+            }
+        });
 
-                        if (m.health <= 0) {
-                            questState.monstersDefeated++;
-                            checkQuestCompletions();
-                        }
+        window.addEventListener('keyup', e => {
+            const key = e.key.toLowerCase();
+            keys[e.code] = false;
+            keys[key] = false;
+        });
+
+        mobileSwordBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            triggerActionOrAttack();
+        });
+
+        if (isMobile) {
+            window.addEventListener('touchstart', e => {
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    const touch = e.changedTouches[i];
+                    if (touch.clientX < window.innerWidth / 2 && !joystick.active) {
+                        joystick.active = true;
+                        joystick.touchId = touch.identifier;
+                        joystick.startX = touch.clientX; joystick.startY = touch.clientY;
+                        joystick.currX = touch.clientX; joystick.currY = touch.clientY;
                     }
                 }
             });
 
-            currentData.monsters = currentData.monsters.filter(m => m.health > 0);
+            window.addEventListener('touchmove', e => {
+                if (!joystick.active) return;
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    const touch = e.changedTouches[i];
+                    if (touch.identifier === joystick.touchId) {
+                        joystick.currX = touch.clientX; joystick.currY = touch.clientY;
+                    }
+                }
+            });
+
+            window.addEventListener('touchend', e => {
+                if (joystick.active) {
+                    for (let i = 0; i < e.changedTouches.length; i++) {
+                        if (e.changedTouches[i].identifier === joystick.touchId) joystick.active = false;
+                    }
+                }
+            });
         }
 
         function interactWithBush(bush) {
-            activeNearbyBush = bush;
             bush.rustle();
-            modalActions.innerHTML = "";
+            setTimeout(() => {
+                openCacheModal(bush);
+            }, 250);
+        }
 
-            const cachePreviewCanvas = document.getElementById('cache-canvas-preview');
-            const prevCtx = cachePreviewCanvas.getContext('2d');
-            prevCtx.clearRect(0, 0, cachePreviewCanvas.width, cachePreviewCanvas.height);
+        mobileBushBtn.addEventListener('click', () => {
+            if (activeNearbyBush) interactWithBush(activeNearbyBush);
+        });
+
+        mobileTurtleBtn.addEventListener('click', () => {
+            handleTurtleInteractOrPlace();
+        });
+
+        function updateQuestProgress() {
+            document.getElementById('q1-count').textContent = questState.cachesFound;
+            document.getElementById('q2-monsters').textContent = questState.monstersDefeated;
+            document.getElementById('q3-trackables').textContent = questState.trackablesRelocated;
+
+            const q1Code = document.getElementById('q1-code');
+            if (questState.cachesFound >= questState.cachesTarget) {
+                q1Code.textContent = questState.code1;
+                q1Code.classList.remove('code-locked');
+                if (!questState.q1Completed) {
+                    questState.q1Completed = true;
+                    triggerQuestBanner("Master Geocacher!", questState.code1);
+                }
+            } else {
+                q1Code.textContent = "🔒 LOCKED";
+                q1Code.classList.add('code-locked');
+            }
+
+            const q2Code = document.getElementById('q2-code');
+            if (questState.monstersDefeated >= questState.monstersTarget) {
+                q2Code.textContent = questState.code2;
+                q2Code.classList.remove('code-locked');
+                if (!questState.q2Completed) {
+                    questState.q2Completed = true;
+                    triggerQuestBanner("Monster Hunter!", questState.code2);
+                }
+            } else {
+                q2Code.textContent = "🔒 LOCKED";
+                q2Code.classList.add('code-locked');
+            }
+
+            const q3Code = document.getElementById('q3-code');
+            if (questState.trackablesRelocated >= questState.trackablesTarget) {
+                q3Code.textContent = questState.code3;
+                q3Code.classList.remove('code-locked');
+                if (!questState.q3Completed) {
+                    questState.q3Completed = true;
+                    triggerQuestBanner("Trackable Lover", questState.code3);
+                }
+            } else {
+                q3Code.textContent = "🔒 LOCKED";
+                q3Code.classList.add('code-locked');
+            }
+        }
+
+        function toggleQuestModal() {
+            if (questModal.style.display === 'block') {
+                closeModal('quest-modal');
+            } else {
+                updateQuestProgress();
+                questModal.style.display = 'block';
+            }
+        }
+
+        function openCacheModal(bush) {
+            modalActions.innerHTML = "";
+            const previewCanvas = document.getElementById('cache-canvas-preview');
+            const pCtx = previewCanvas.getContext('2d');
+            pCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+
+            let itemsFoundInBush = false;
 
             if (bush.hasCache && !bush.cacheTaken) {
-                modalTitle.textContent = "Geocache Found!";
-                drawAmmoBox(prevCtx, 20, 15, 60, 40);
+                itemsFoundInBush = true;
+                modalTitle.textContent = "Geocache Discovered!";
+                previewCanvas.style.display = "block";
+                drawAmmoBox(pCtx, 20, 18, 60, 38);
 
-                if (!bush.signed) {
-                    let signBtn = document.createElement('button');
-                    signBtn.className = 'modal-btn confirm';
-                    signBtn.textContent = 'Sign Logbook [S]';
-                    signBtn.onclick = () => {
+                const signBtn = document.createElement('button');
+                signBtn.id = "btn-sign-cache";
+                signBtn.className = "modal-btn";
+                signBtn.textContent = "Sign Cache Logbook";
+                signBtn.onclick = () => {
+                    if (!bush.signed) {
                         bush.signed = true;
                         questState.cachesFound++;
-                        checkQuestCompletions();
-                        playSound('coin');
-                        interactWithBush(bush);
-                    };
-                    modalActions.appendChild(signBtn);
-                } else {
-                    let signedMsg = document.createElement('div');
-                    signedMsg.style.color = '#2ecc71';
-                    signedMsg.style.margin = '8px 0';
-                    signedMsg.style.fontWeight = 'bold';
-                    signedMsg.textContent = '✓ Logbook Signed';
-                    modalActions.appendChild(signedMsg);
-                }
+                        updateQuestProgress();
+                    }
+                    closeModal('cache-modal');
+                };
+                modalActions.appendChild(signBtn);
 
-                if (bush.hasTrackable && !bush.trackableTaken) {
-                    let trackBtn = document.createElement('button');
-                    trackBtn.className = 'modal-btn';
-                    trackBtn.style.background = '#f1c40f';
-                    trackBtn.style.color = '#000';
-                    trackBtn.textContent = `Inspect Trackable ${bush.trackableEmoji} [T]`;
+                const takeBtn = document.createElement('button');
+                takeBtn.id = "btn-take-cache";
+                takeBtn.className = "modal-btn";
+                takeBtn.textContent = isMobile ? "Take Geocache" : "Take Geocache [R]";
+                takeBtn.onclick = () => {
+                    const emptyIndex = inventory.findIndex(slot => slot === null);
+                    if (emptyIndex !== -1) {
+                        inventory[emptyIndex] = { name: "Geocache", type: "cache", icon: "📦" };
+                        bush.cacheTaken = true;
+                        updateHotbarUI();
+                    } else {
+                        alert("Inventory Full!");
+                    }
+                    closeModal('cache-modal');
+                };
+                modalActions.appendChild(takeBtn);
+
+                if (bush.hasTrackable && !bush.trackableTaken && !bush.isPermanentlyLockedTrackable) {
+                    const trackBtn = document.createElement('button');
+                    trackBtn.id = "btn-inspect-trackable";
+                    trackBtn.className = "modal-btn";
+                    trackBtn.textContent = isMobile ? `Inspect Trackable ${bush.trackableEmoji}` : `Inspect Trackable ${bush.trackableEmoji} [T]`;
                     trackBtn.onclick = () => {
-                        cacheModal.style.display = 'none';
+                        closeModal('cache-modal');
                         document.getElementById('trackable-display-icon').textContent = bush.trackableEmoji;
                         trackableOverlay.style.display = 'flex';
                     };
                     modalActions.appendChild(trackBtn);
                 }
 
-                let takeBtn = document.createElement('button');
-                takeBtn.className = 'modal-btn warning';
-                takeBtn.textContent = 'Take Geocache (Steal) [G]';
-                takeBtn.onclick = () => {
-                    let emptySlot = inventory.findIndex(s => s === null);
-                    if (emptySlot !== -1) {
-                        inventory[emptySlot] = { name: "Geocache", type: "cache", icon: "📦" };
-                        bush.cacheTaken = true;
+                const trackableSlotIndex = inventory.findIndex(item => item && item.type === 'trackable');
+                if (trackableSlotIndex !== -1) {
+                    const trackableItem = inventory[trackableSlotIndex];
+                    const isSameCache = (trackableItem.sourceBushId === bush.id);
+
+                    const dropTrackBtn = document.createElement('button');
+                    dropTrackBtn.className = "modal-btn";
+                    dropTrackBtn.textContent = isSameCache ? `Put Trackable ${trackableItem.icon} Back` : `Drop Trackable ${trackableItem.icon} Here`;
+
+                    dropTrackBtn.onclick = () => {
+                        inventory[trackableSlotIndex] = null;
+                        
+                        if (!isSameCache) {
+                            questState.trackablesRelocated++;
+                            bush.isPermanentlyLockedTrackable = true;
+                            updateQuestProgress();
+                        } else {
+                            bush.isPermanentlyLockedTrackable = false;
+                        }
+
+                        bush.hasTrackable = true;
+                        bush.trackableTaken = false;
+                        bush.trackableEmoji = trackableItem.icon;
+                        bush.originalTrackableSourceId = trackableItem.sourceBushId;
+
                         updateHotbarUI();
                         closeModal('cache-modal');
+                    };
+                    modalActions.appendChild(dropTrackBtn);
+                }
+            }
+
+            if (bush.hasPotion && !bush.potionTaken) {
+                itemsFoundInBush = true;
+                if (!bush.hasCache || bush.cacheTaken) {
+                    modalTitle.textContent = "Health Potion Found!";
+                    previewCanvas.style.display = "none";
+                }
+
+                const potionBtn = document.createElement('button');
+                potionBtn.className = "modal-btn";
+                potionBtn.style.background = "#27ae60";
+                potionBtn.textContent = "🧪 Take Health Potion";
+                potionBtn.onclick = () => {
+                    const emptyIndex = inventory.findIndex(slot => slot === null);
+                    if (emptyIndex !== -1) {
+                        inventory[emptyIndex] = { name: "Health Potion", type: "hp_potion", icon: "🧪" };
+                        bush.potionTaken = true;
+                        playSound('coin');
+                        updateHotbarUI();
                     } else {
                         alert("Inventory Full!");
                     }
-                };
-                modalActions.appendChild(takeBtn);
-
-            } else if (bush.hasCache && bush.cacheTaken) {
-                modalTitle.textContent = "Empty Spot";
-                let text = document.createElement('p');
-                text.textContent = "The Geocache was taken from here.";
-                modalActions.appendChild(text);
-
-                let holdsCacheIdx = inventory.findIndex(i => i && i.type === 'cache');
-                if (holdsCacheIdx !== -1) {
-                    let replaceBtn = document.createElement('button');
-                    replaceBtn.className = 'modal-btn confirm';
-                    replaceBtn.textContent = 'Place Geocache Back [P]';
-                    replaceBtn.onclick = () => {
-                        inventory[holdsCacheIdx] = null;
-                        bush.cacheTaken = false;
-                        updateHotbarUI();
-                        closeModal('cache-modal');
-                    };
-                    modalActions.appendChild(replaceBtn);
-                }
-            } else {
-                modalTitle.textContent = "Bush Searched";
-                let text = document.createElement('p');
-                text.style.color = '#ccc';
-
-                if (bush.hasPotion && !bush.potionTaken) {
-                    text.textContent = "You found a Health Potion inside!";
-                    let potBtn = document.createElement('button');
-                    potBtn.className = 'modal-btn confirm';
-                    potBtn.textContent = 'Take Health Potion (❤️) [P]';
-                    potBtn.onclick = () => {
-                        let emptySlot = inventory.findIndex(s => s === null);
-                        if (emptySlot !== -1) {
-                            inventory[emptySlot] = { name: "Health Potion", type: "hp_potion", icon: "🧪" };
-                            bush.potionTaken = true;
-                            updateHotbarUI();
-                            closeModal('cache-modal');
-                        } else {
-                            alert("Inventory Full!");
-                        }
-                    };
-                    modalActions.appendChild(potBtn);
-                } else if (bush.hasOverhealPotion && !bush.overhealTaken) {
-                    text.textContent = "You found a rare Overheal Potion inside!";
-                    let potBtn = document.createElement('button');
-                    potBtn.className = 'modal-btn confirm';
-                    potBtn.style.background = '#f39c12';
-                    potBtn.textContent = 'Take Overheal Potion (💛) [P]';
-                    potBtn.onclick = () => {
-                        let emptySlot = inventory.findIndex(s => s === null);
-                        if (emptySlot !== -1) {
-                            inventory[emptySlot] = { name: "Overheal Potion", type: "overheal_potion", icon: "🍯" };
-                            bush.overhealTaken = true;
-                            updateHotbarUI();
-                            closeModal('cache-modal');
-                        } else {
-                            alert("Inventory Full!");
-                        }
-                    };
-                    modalActions.appendChild(potBtn);
-                } else {
-                    text.textContent = "Nothing hidden in this bush.";
-                }
-                modalActions.appendChild(text);
-            }
-
-            let holdsTrackableIdx = inventory.findIndex(i => i && i.type === 'trackable');
-            if (holdsTrackableIdx !== -1 && bush.hasCache && !bush.cacheTaken && !bush.hasTrackable) {
-                let placeTrackBtn = document.createElement('button');
-                placeTrackBtn.className = 'modal-btn confirm';
-                placeTrackBtn.textContent = `Drop Trackable ${inventory[holdsTrackableIdx].icon} Here [D]`;
-                placeTrackBtn.onclick = () => {
-                    let item = inventory[holdsTrackableIdx];
-                    bush.hasTrackable = true;
-                    bush.trackableEmoji = item.icon;
-                    bush.trackableTaken = false;
-                    bush.isPermanentlyLockedTrackable = true;
-
-                    if (bush.id !== item.originBushId) {
-                        questState.trackablesRelocated++;
-                        checkQuestCompletions();
-                    }
-
-                    inventory[holdsTrackableIdx] = null;
-                    updateHotbarUI();
-                    playSound('coin');
                     closeModal('cache-modal');
                 };
-                modalActions.appendChild(placeTrackBtn);
+                modalActions.appendChild(potionBtn);
+            }
+
+            if (bush.hasOverhealPotion && !bush.overhealTaken) {
+                itemsFoundInBush = true;
+                if ((!bush.hasCache || bush.cacheTaken) && (!bush.hasPotion || bush.potionTaken)) {
+                    modalTitle.textContent = "Overheal Potion Found!";
+                    previewCanvas.style.display = "none";
+                }
+
+                const overhealBtn = document.createElement('button');
+                overhealBtn.className = "modal-btn";
+                overhealBtn.style.background = "#f39c12";
+                overhealBtn.textContent = "🏺 Take Overheal Potion (+3 💛)";
+                overhealBtn.onclick = () => {
+                    const emptyIndex = inventory.findIndex(slot => slot === null);
+                    if (emptyIndex !== -1) {
+                        inventory[emptyIndex] = { name: "Overheal Potion", type: "overheal_potion", icon: "🏺" };
+                        bush.overhealTaken = true;
+                        playSound('coin');
+                        updateHotbarUI();
+                    } else {
+                        alert("Inventory Full!");
+                    }
+                    closeModal('cache-modal');
+                };
+                modalActions.appendChild(overhealBtn);
+            }
+
+            if (!itemsFoundInBush) {
+                modalTitle.textContent = "Empty Bush";
+                previewCanvas.style.display = "none";
+            }
+
+            const cacheSlotIndex = inventory.findIndex(item => item && item.type === 'cache');
+            if (cacheSlotIndex !== -1) {
+                const putBackBtn = document.createElement('button');
+                putBackBtn.className = "modal-btn";
+                putBackBtn.textContent = "Put Back Geocache";
+                putBackBtn.onclick = () => {
+                    inventory[cacheSlotIndex] = null;
+                    bush.hasCache = true;
+                    bush.cacheTaken = false;
+                    updateHotbarUI();
+                    closeModal('cache-modal');
+                };
+                modalActions.appendChild(putBackBtn);
             }
 
             cacheModal.style.display = 'block';
@@ -1120,330 +1539,289 @@
 
         function claimTrackable() {
             if (!activeNearbyBush) return;
-            let emptySlot = inventory.findIndex(s => s === null);
-            if (emptySlot !== -1) {
-                inventory[emptySlot] = {
-                    name: "Trackable",
-                    type: "trackable",
+            const emptyIndex = inventory.findIndex(slot => slot === null);
+            if (emptyIndex !== -1) {
+                inventory[emptyIndex] = { 
+                    name: "Trackable", 
+                    type: "trackable", 
                     icon: activeNearbyBush.trackableEmoji,
-                    originBushId: activeNearbyBush.originalTrackableSourceId
+                    sourceBushId: activeNearbyBush.originalTrackableSourceId 
                 };
                 activeNearbyBush.trackableTaken = true;
-                activeNearbyBush.hasTrackable = false;
-                updateHotbarUI();
-                closeModal('trackable-overlay');
                 playSound('coin');
+                updateHotbarUI();
             } else {
                 alert("Inventory Full!");
             }
+            trackableOverlay.style.display = 'none';
         }
 
-        function respawnPlayer() {
-            player.health = player.maxHealth;
-            player.yellowHearts = 0;
-            player.gridX = 0;
-            player.gridY = 0;
-            player.x = canvas.width / 2;
-            player.y = canvas.height / 2;
-            worldMap = {};
-            updateHeartsUI();
-            closeModal('game-over-modal');
+        function closeModal(id) {
+            document.getElementById(id).style.display = 'none';
         }
 
-        window.addEventListener('keydown', e => {
-            keys[e.key.toLowerCase()] = true;
+        function updatePlayer(deltaTime) {
+            if (player.health <= 0 && player.yellowHearts <= 0) return;
 
-            if (e.key >= '1' && e.key <= '5') {
-                selectSlot(parseInt(e.key) - 1);
+            if (player.invulnerableTimer > 0) {
+                player.invulnerableTimer -= deltaTime;
             }
-            if (e.key === ' ') {
-                attemptUseSelectedItem();
-            }
-            if (e.key.toLowerCase() === 'q') {
-                toggleQuestModal();
-            }
-            if (e.key.toLowerCase() === 'e') {
-                if (activeNearbyBush) interactWithBush(activeNearbyBush);
-            }
-        });
 
-        window.addEventListener('keyup', e => {
-            keys[e.key.toLowerCase()] = false;
-        });
-
-        canvas.addEventListener('touchstart', e => {
-            for (let i = 0; i < e.changedTouches.length; i++) {
-                let touch = e.changedTouches[i];
-                if (touch.clientX < window.innerWidth / 2 && !joystick.active) {
-                    joystick.active = true;
-                    joystick.touchId = touch.identifier;
-                    joystick.startX = touch.clientX;
-                    joystick.startY = touch.clientY;
-                    joystick.currX = touch.clientX;
-                    joystick.currY = touch.clientY;
-                }
-            }
-        });
-
-        canvas.addEventListener('touchmove', e => {
-            for (let i = 0; i < e.changedTouches.length; i++) {
-                let touch = e.changedTouches[i];
-                if (joystick.active && touch.identifier === joystick.touchId) {
-                    joystick.currX = touch.clientX;
-                    joystick.currY = touch.clientY;
-                }
-            }
-        });
-
-        canvas.addEventListener('touchend', e => {
-            for (let i = 0; i < e.changedTouches.length; i++) {
-                let touch = e.changedTouches[i];
-                if (joystick.active && touch.identifier === joystick.touchId) {
-                    joystick.active = false;
-                    joystick.touchId = null;
-                }
-            }
-        });
-
-        mobileSwordBtn.addEventListener('click', () => { attemptUseSelectedItem(); });
-        mobileBushBtn.addEventListener('click', () => { if (activeNearbyBush) interactWithBush(activeNearbyBush); });
-
-        let lastTime = performance.now();
-
-        function gameLoop(now) {
-            let deltaTime = (now - lastTime) / 1000;
-            if (deltaTime > 0.1) deltaTime = 0.1;
-            lastTime = now;
-
-            update(deltaTime);
-            render(deltaTime);
-
-            requestAnimationFrame(gameLoop);
-        }
-
-        function update(deltaTime) {
-            checkHeldCacheTimer(deltaTime);
-
-            if (player.invulnerableTimer > 0) player.invulnerableTimer -= deltaTime;
             if (player.isAttacking) {
                 player.attackTimer -= deltaTime;
                 if (player.attackTimer <= 0) player.isAttacking = false;
             }
 
-            let moveX = 0;
-            let moveY = 0;
+            let dx = 0, dy = 0;
+            if (keys['w'] || keys['arrowup']) dy -= 1;
+            if (keys['s'] || keys['arrowdown']) dy += 1;
+            if (keys['a'] || keys['arrowleft']) dx -= 1;
+            if (keys['d'] || keys['arrowright']) dx += 1;
 
-            if (keys['w'] || keys['arrowup']) moveY -= 1;
-            if (keys['s'] || keys['arrowdown']) moveY += 1;
-            if (keys['a'] || keys['arrowleft']) moveX -= 1;
-            if (keys['d'] || keys['arrowright']) moveX += 1;
-
-            if (joystick.active) {
-                let dx = joystick.currX - joystick.startX;
-                let dy = joystick.currY - joystick.startY;
-                let dist = Math.hypot(dx, dy);
-                if (dist > 10) {
-                    moveX = dx / dist;
-                    moveY = dy / dist;
+            if (joystick.active && dx === 0 && dy === 0) {
+                const diffX = joystick.currX - joystick.startX;
+                const diffY = joystick.currY - joystick.startY;
+                const dist = Math.hypot(diffX, diffY);
+                if (dist > 5) {
+                    dx = diffX / Math.max(dist, joystick.maxRadius);
+                    dy = diffY / Math.max(dist, joystick.maxRadius);
                 }
             }
 
-            if (moveX !== 0 && moveY !== 0 && !joystick.active) {
-                moveX *= 0.7071;
-                moveY *= 0.7071;
-            }
+            player.isMoving = (dx !== 0 || dy !== 0);
 
-            player.isMoving = (moveX !== 0 || moveY !== 0);
+            if (dx < 0) player.facingLeft = true;
+            else if (dx > 0) player.facingLeft = false;
 
-            if (moveX < 0) player.facingLeft = true;
-            if (moveX > 0) player.facingLeft = false;
-
-            player.x += moveX * player.speed * deltaTime;
-            player.y += moveY * player.speed * deltaTime;
-
+            player.animTimer += deltaTime;
             if (player.isMoving) {
-                player.animTimer += deltaTime;
-                if (player.animTimer > 0.1) {
+                if (player.animTimer >= 0.1) {
                     player.animTimer = 0;
-                    player.animFrame = (player.animFrame + 1) % 6;
+                    player.animFrame = (player.animFrame + 1) % playerSprites.run.length;
                 }
             } else {
-                player.animTimer += deltaTime;
-                if (player.animTimer > 0.15) {
+                if (player.animTimer >= 0.15) {
                     player.animTimer = 0;
-                    player.animFrame = (player.animFrame + 1) % 6;
+                    player.animFrame = (player.animFrame + 1) % playerSprites.idle.length;
                 }
             }
 
-            if (player.x < 0) { player.gridX--; player.x = canvas.width - 1; }
-            if (player.x > canvas.width) { player.gridX++; player.x = 1; }
-            if (player.y < 0) { player.gridY--; player.y = canvas.height - 1; }
-            if (player.y > canvas.height) { player.gridY++; player.y = 1; }
+            if (dx !== 0 && dy !== 0) { dx *= 0.7071; dy *= 0.7071; }
+
+            let nextX = player.x + dx * player.speed * deltaTime;
+            let nextY = player.y + dy * player.speed * deltaTime;
+
+            const currentChunk = getOrCreateChunk(player.gridX, player.gridY);
+            
+            for (const rock of currentChunk.rocks) {
+                const dist = Math.hypot(nextX - rock.x, nextY - rock.y);
+                const minDist = player.radius + rock.radius;
+                if (dist < minDist) {
+                    const angle = Math.atan2(nextY - rock.y, nextX - rock.x);
+                    nextX = rock.x + Math.cos(angle) * minDist;
+                    nextY = rock.y + Math.sin(angle) * minDist;
+                }
+            }
+
+            for (const tree of currentChunk.trees) {
+                const dist = Math.hypot(nextX - tree.x, nextY - tree.y);
+                const minDist = player.radius + tree.trunkRadius;
+                if (dist < minDist) {
+                    const angle = Math.atan2(nextY - tree.y, nextX - tree.x);
+                    nextX = tree.x + Math.cos(angle) * minDist;
+                    nextY = tree.y + Math.sin(angle) * minDist;
+                }
+            }
+
+            player.x = nextX;
+            player.y = nextY;
+
+            if (player.x > canvas.width) { player.gridX++; player.x = player.radius + 2; }
+            else if (player.x < 0) { player.gridX--; player.x = canvas.width - player.radius - 2; }
+            
+            if (player.y < 0) { player.gridY++; player.y = canvas.height - player.radius - 2; }
+            else if (player.y > canvas.height) { player.gridY--; player.y = player.radius + 2; }
 
             sectorEl.textContent = `X: ${player.gridX}, Y: ${player.gridY}`;
-
-            let currentData = getScreenData(player.gridX, player.gridY);
-
-            activeNearbyBush = null;
-            let closestDist = INTERACTION_DISTANCE;
-
-            currentData.bushes.forEach(b => {
-                let dist = Math.hypot(b.x - player.x, b.y - player.y);
-                if (dist < b.radius + player.radius) {
-                    let overlap = (b.radius + player.radius) - dist;
-                    let angle = Math.atan2(player.y - b.y, player.x - b.x);
-                    player.x += Math.cos(angle) * overlap;
-                    player.y += Math.sin(angle) * overlap;
-                }
-
-                if (dist < closestDist) {
-                    closestDist = dist;
-                    activeNearbyBush = b;
-                }
-            });
-
-            if (activeNearbyBush) {
-                mobileBushBtn.style.display = 'block';
-                mobileBushBtn.style.left = `${activeNearbyBush.x}px`;
-                mobileBushBtn.style.top = `${activeNearbyBush.y - 35}px`;
-            } else {
-                mobileBushBtn.style.display = 'none';
-            }
-
-            currentData.monsters.forEach(m => {
-                let dx = player.x - m.x;
-                let dy = player.y - m.y;
-                let dist = Math.hypot(dx, dy);
-
-                if (dist > 0) {
-                    m.x += (dx / dist) * m.speed * deltaTime;
-                    m.y += (dy / dist) * m.speed * deltaTime;
-                    m.facingLeft = (dx < 0);
-                }
-
-                if (dist < player.radius + m.radius && player.invulnerableTimer <= 0) {
-                    if (player.yellowHearts > 0) {
-                        player.yellowHearts--;
-                    } else {
-                        player.health--;
-                    }
-                    playSound('damage');
-                    player.invulnerableTimer = 1.0;
-                    updateHeartsUI();
-
-                    if (player.health <= 0) {
-                        gameOverModal.style.display = 'block';
-                    }
-                }
-            });
-
-            leavesParticles.forEach(p => {
-                p.x += p.vx * deltaTime;
-                p.y += p.vy * deltaTime;
-                p.life -= deltaTime;
-            });
-            leavesParticles = leavesParticles.filter(p => p.life > 0);
         }
 
-        function render(deltaTime) {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        function drawPlayerSprite() {
+            if (player.health <= 0 && player.yellowHearts <= 0) return;
 
-            drawGrassBackground(player.gridX, player.gridY);
+            if (player.invulnerableTimer > 0 && Math.floor(performance.now() / 100) % 2 === 0) {
+                return;
+            }
 
-            let currentData = getScreenData(player.gridX, player.gridY);
-
-            currentData.bushes.forEach(b => b.draw(deltaTime));
-
-            leavesParticles.forEach(p => {
-                ctx.fillStyle = `rgba(46, 204, 113, ${p.life * 2})`;
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
-                ctx.fill();
-            });
-
-            currentData.monsters.forEach(m => {
-                ctx.save();
-                ctx.translate(m.x, m.y);
-                if (m.facingLeft) ctx.scale(-1, 1);
-
-                ctx.fillStyle = '#c0392b';
-                ctx.beginPath();
-                ctx.arc(0, 0, m.radius, 0, Math.PI * 2);
-                ctx.fill();
-
-                ctx.fillStyle = '#f1c40f';
-                ctx.beginPath();
-                ctx.arc(4, -3, 3, 0, Math.PI * 2);
-                ctx.fill();
-
-                ctx.restore();
-            });
+            const currentArray = player.isMoving ? playerSprites.run : playerSprites.idle;
+            const frameIndex = player.animFrame % currentArray.length;
+            const spriteImg = currentArray[frameIndex];
 
             ctx.save();
             ctx.translate(player.x, player.y);
 
-            if (player.invulnerableTimer > 0 && Math.floor(performance.now() / 100) % 2 === 0) {
-                ctx.globalAlpha = 0.4;
+            if (player.facingLeft) {
+                ctx.scale(-1, 1);
             }
 
-            let currentSprites = player.isMoving ? playerSprites.run : playerSprites.idle;
-            let currentImg = currentSprites[player.animFrame];
+            const originalWidth = (spriteImg && spriteImg.naturalWidth) ? spriteImg.naturalWidth : 40;
+            const originalHeight = (spriteImg && spriteImg.naturalHeight) ? spriteImg.naturalHeight : 40;
+            const aspectRatio = originalWidth / originalHeight;
 
-            if (currentImg && currentImg.complete && currentImg.naturalWidth !== 0) {
-                ctx.save();
-                if (player.facingLeft) ctx.scale(-1, 1);
-                ctx.drawImage(currentImg, -24, -28, 48, 48);
-                ctx.restore();
+            const drawHeight = 32;
+            const drawWidth = drawHeight * aspectRatio;
+
+            if (spriteImg && spriteImg.complete && spriteImg.naturalWidth !== 0) {
+                ctx.drawImage(spriteImg, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
             } else {
-                ctx.fillStyle = '#3498db';
+                ctx.fillStyle = '#2ecc71';
                 ctx.beginPath();
                 ctx.arc(0, 0, player.radius, 0, Math.PI * 2);
                 ctx.fill();
-
-                ctx.fillStyle = '#ffffff';
-                let eyeOffset = player.facingLeft ? -4 : 4;
-                ctx.beginPath();
-                ctx.arc(eyeOffset, -3, 3, 0, Math.PI * 2);
-                ctx.fill();
-            }
-
-            if (player.isAttacking) {
-                ctx.save();
-                let attackAngle = player.facingLeft ? Math.PI : 0;
-                ctx.rotate(attackAngle);
-
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-                ctx.lineWidth = 4;
-                ctx.beginPath();
-                ctx.arc(0, 0, 32, -Math.PI / 3, Math.PI / 3);
-                ctx.stroke();
-
-                ctx.restore();
             }
 
             ctx.restore();
 
-            if (joystick.active) {
+            if (player.isAttacking) {
+                const progress = 1 - (player.attackTimer / ATTACK_DURATION);
+                const startAngle = -Math.PI / 2;
+                const endAngle = Math.PI / 2;
+                const currentAngle = startAngle + (progress * (endAngle - startAngle));
+
                 ctx.save();
+                ctx.translate(player.x, player.y);
+
+                if (player.facingLeft) {
+                    ctx.scale(-1, 1);
+                }
+
                 ctx.beginPath();
-                ctx.arc(joystick.startX, joystick.startY, joystick.maxRadius, 0, Math.PI * 2);
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
-                ctx.fill();
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.arc(0, 0, 42, startAngle, currentAngle, false);
+                ctx.lineWidth = 8;
+                ctx.strokeStyle = "rgba(255, 255, 255, 0.75)";
+                ctx.lineCap = "round";
                 ctx.stroke();
 
-                let dx = joystick.currX - joystick.startX;
-                let dy = joystick.currY - joystick.startY;
-                let dist = Math.hypot(dx, dy);
-                let handleX = joystick.startX + (dist > joystick.maxRadius ? (dx / dist) * joystick.maxRadius : dx);
-                let handleY = joystick.startY + (dist > joystick.maxRadius ? (dy / dist) * joystick.maxRadius : dy);
-
                 ctx.beginPath();
-                ctx.arc(handleX, handleY, 22, 0, Math.PI * 2);
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
-                ctx.fill();
+                ctx.arc(0, 0, 42, startAngle, currentAngle, false);
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = "#ffffff";
+                ctx.stroke();
+
+                ctx.rotate(currentAngle);
+                ctx.translate(32, 0);
+                ctx.rotate(Math.PI / 4 + Math.PI / 8 + Math.PI);
+
+                ctx.font = '26px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText("🗡️", 0, 0);
+
                 ctx.restore();
             }
+        }
+
+        let lastTime = performance.now();
+        function gameLoop(currentTime) {
+            const deltaTime = (currentTime - lastTime) / 1000;
+            lastTime = currentTime;
+
+            drawGrassBackground(player.gridX, player.gridY);
+
+            updatePlayer(deltaTime);
+            checkHeldCacheTimer(deltaTime);
+
+            const chunk = getOrCreateChunk(player.gridX, player.gridY);
+
+            chunk.bushes.forEach(b => b.draw(deltaTime));
+            chunk.rocks.forEach(r => r.draw());
+            
+            chunk.turtles.forEach(t => {
+                t.update(deltaTime);
+                t.draw();
+            });
+
+            for (let i = leavesParticles.length - 1; i >= 0; i--) {
+                const p = leavesParticles[i];
+                p.x += p.vx * deltaTime;
+                p.y += p.vy * deltaTime;
+                p.life -= deltaTime;
+                if (p.life <= 0) {
+                    leavesParticles.splice(i, 1);
+                } else {
+                    ctx.fillStyle = '#2ecc71';
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            activeNearbyBush = null;
+            activeNearbyTurtle = null;
+            let closestBushDist = Infinity;
+            let closestTurtleDist = Infinity;
+            const rect = canvas.getBoundingClientRect();
+
+            if (player.health > 0 || player.yellowHearts > 0) {
+                chunk.bushes.forEach(bush => {
+                    const dist = Math.hypot(player.x - bush.x, player.y - bush.y);
+                    if (dist < INTERACTION_DISTANCE && dist < closestBushDist) {
+                        closestBushDist = dist;
+                        activeNearbyBush = bush;
+                    }
+                });
+
+                chunk.turtles.forEach(turtle => {
+                    const dist = Math.hypot(player.x - turtle.x, player.y - turtle.y);
+                    if (dist < INTERACTION_DISTANCE && dist < closestTurtleDist) {
+                        closestTurtleDist = dist;
+                        activeNearbyTurtle = turtle;
+                    }
+                });
+            }
+
+            if (activeNearbyBush && cacheModal.style.display !== 'block' && questModal.style.display !== 'block' && trackableOverlay.style.display !== 'flex') {
+                const screenX = rect.left + (activeNearbyBush.x * (rect.width / canvas.width));
+                const screenY = rect.top + ((activeNearbyBush.y - 35) * (rect.height / canvas.height));
+
+                mobileBushBtn.style.left = `${screenX}px`;
+                mobileBushBtn.style.top = `${screenY}px`;
+                mobileBushBtn.style.display = 'block';
+                mobileBushBtn.textContent = isMobile ? "SEARCH" : "SEARCH [E]";
+            } else {
+                mobileBushBtn.style.display = 'none';
+            }
+
+            const selectedItem = inventory[selectedSlotIndex];
+            const isHoldingTurtle = selectedItem && selectedItem.type === 'turtle';
+
+            if ((activeNearbyTurtle || isHoldingTurtle) && cacheModal.style.display !== 'block' && questModal.style.display !== 'block' && trackableOverlay.style.display !== 'flex') {
+                const targetObj = isHoldingTurtle ? player : activeNearbyTurtle;
+                const screenX = rect.left + (targetObj.x * (rect.width / canvas.width));
+                const screenY = rect.top + ((targetObj.y - 35) * (rect.height / canvas.height));
+
+                mobileTurtleBtn.style.left = `${screenX}px`;
+                mobileTurtleBtn.style.top = `${screenY}px`;
+                mobileTurtleBtn.style.display = 'block';
+                
+                if (isHoldingTurtle) {
+                    mobileTurtleBtn.textContent = isMobile ? "PLACE" : "PLACE TURTLE [F]";
+                } else {
+                    mobileTurtleBtn.textContent = isMobile ? "PICK UP" : "PICK UP TURTLE [F]";
+                }
+            } else {
+                mobileTurtleBtn.style.display = 'none';
+            }
+
+            chunk.monsters.forEach(m => {
+                m.update(deltaTime);
+                m.draw();
+            });
+
+            drawPlayerSprite();
+
+            chunk.trees.forEach(t => t.drawCanopy());
+
+            requestAnimationFrame(gameLoop);
         }
 
         updateHeartsUI();
