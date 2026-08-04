@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cache Hunter - Trackable Quest</title>
+  <title>Cache Hunter</title>
   <style>
     * {
       box-sizing: border-box;
@@ -12,9 +12,9 @@
     body {
       margin: 0;
       padding: 0;
-      background-color: #0f172a;
-      color: #f8fafc;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #111;
+      color: #fff;
+      font-family: Arial, sans-serif;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -23,67 +23,26 @@
       overflow: hidden;
     }
 
-    /* Top HUD Header */
-    #hud {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+    #game-container {
+      position: relative;
       width: 800px;
-      padding: 12px 20px;
-      background: #1e293b;
-      border-radius: 12px 12px 0 0;
-      border: 2px solid #334155;
-      border-bottom: none;
+      height: 600px;
     }
 
-    .hud-title {
-      font-size: 20px;
-      font-weight: bold;
-      color: #f59e0b;
+    canvas {
+      display: block;
+      border: 2px solid #444;
+      background-color: #2e7d32;
     }
 
-    .hud-stats {
-      display: flex;
-      gap: 20px;
-      font-size: 14px;
-    }
-
-    .badge {
-      background: #334155;
-      padding: 6px 12px;
-      border-radius: 6px;
-      border: 1px solid #475569;
-    }
-
-    /* Main Game Canvas */
-    #gameCanvas {
-      background-color: #15803d;
-      border: 2px solid #334155;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-    }
-
-    /* Bottom Control Bar */
-    #instructions {
-      width: 800px;
-      padding: 10px;
-      background: #1e293b;
-      border-radius: 0 0 12px 12px;
-      border: 2px solid #334155;
-      border-top: none;
-      text-align: center;
-      font-size: 13px;
-      color: #94a3b8;
-    }
-
-    /* --- CENTERED POPUP MODAL OVERLAY --- */
+    /* --- CENTERED TRACKABLE POPUP UI --- */
     .trackable-overlay {
-      position: fixed;
+      position: absolute;
       top: 0;
       left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: rgba(15, 23, 42, 0.75);
-      backdrop-filter: blur(4px);
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.65);
       display: flex;
       justify-content: center; /* Center horizontally */
       align-items: center;     /* Center vertically */
@@ -99,13 +58,13 @@
     }
 
     .trackable-modal {
-      background: #1e293b;
+      background: #1e1e2f;
       border: 3px solid #f59e0b;
-      border-radius: 16px;
-      padding: 24px;
-      width: 340px;
+      border-radius: 12px;
+      padding: 20px;
+      width: 320px;
       text-align: center;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
       transform: scale(0.85);
       transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
@@ -118,27 +77,20 @@
       font-size: 20px;
       font-weight: bold;
       color: #f59e0b;
-      margin: 0 0 8px 0;
+      margin: 0 0 10px 0;
       text-transform: uppercase;
     }
 
     .trackable-icon {
-      font-size: 54px;
-      margin: 12px 0;
+      font-size: 48px;
+      margin: 10px 0;
       display: inline-block;
-      animation: float 2s ease-in-out infinite;
-    }
-
-    @keyframes float {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-6px); }
     }
 
     .trackable-desc {
       font-size: 14px;
-      color: #cbd5e1;
+      color: #ddd;
       margin-bottom: 20px;
-      line-height: 1.4;
     }
 
     .trackable-btn-group {
@@ -150,59 +102,46 @@
       flex: 1;
       padding: 10px;
       border: none;
-      border-radius: 8px;
+      border-radius: 6px;
       font-weight: bold;
       font-size: 14px;
       cursor: pointer;
-      transition: background-color 0.2s;
     }
 
     .btn-take {
       background: #10b981;
-      color: #022c22;
+      color: #000;
     }
     .btn-take:hover { background: #34d399; }
 
     .btn-deposit {
       background: #3b82f6;
-      color: #1e3a8a;
+      color: #fff;
     }
     .btn-deposit:hover { background: #60a5fa; }
 
     .btn-close {
       background: #64748b;
-      color: #ffffff;
+      color: #fff;
     }
     .btn-close:hover { background: #94a3b8; }
   </style>
 </head>
 <body>
 
-  <!-- Game HUD Header -->
-  <div id="hud">
-    <div class="hud-title">🧭 CACHE HUNTER</div>
-    <div class="hud-stats">
-      <div class="badge">🎒 Inventory: <span id="inv-count">0</span> Trackable(s)</div>
-      <div class="badge" style="border-color: #f59e0b;">🏆 Quest Progress: <span id="quest-count">0</span>/5 Relocated</div>
-    </div>
-  </div>
+  <div id="game-container">
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
 
-  <!-- Main Game Canvas -->
-  <canvas id="gameCanvas" width="800" height="500"></canvas>
-
-  <div id="instructions">
-    Use <b>WASD</b> or <b>Arrow Keys</b> to Move. Walk up to a Geocache and press <b>E</b> or <b>SPACE</b> to search!
-  </div>
-
-  <!-- CENTERED POPUP MODAL OVERLAY -->
-  <div id="trackable-overlay" class="trackable-overlay">
-    <div class="trackable-modal">
-      <h2 id="modal-title" class="trackable-title">Trackable Found!</h2>
-      <div id="modal-emoji" class="trackable-icon">🤣</div>
-      <p id="modal-text" class="trackable-desc">You found a trackable item! Would you like to take it?</p>
-      <div id="modal-buttons" class="trackable-btn-group">
-        <button id="btn-primary" class="trackable-btn btn-take">Take Trackable</button>
-        <button id="btn-secondary" class="trackable-btn btn-close">Leave</button>
+    <!-- CENTERED TRACKABLE POPUP -->
+    <div id="trackable-overlay" class="trackable-overlay">
+      <div class="trackable-modal">
+        <h2 id="modal-title" class="trackable-title">Trackable Found!</h2>
+        <div id="modal-emoji" class="trackable-icon">🤣</div>
+        <p id="modal-text" class="trackable-desc">You found a trackable!</p>
+        <div class="trackable-btn-group">
+          <button id="btn-primary" class="trackable-btn btn-take">Take Trackable</button>
+          <button id="btn-secondary" class="trackable-btn btn-close">Leave</button>
+        </div>
       </div>
     </div>
   </div>
@@ -211,55 +150,63 @@
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
 
-    // --- GAME ENGINE STATE ---
-    const TILE_SIZE = 40;
-    const EMOJIS = ['🤣', '😎', '😀', '⭐', '💎'];
+    // --- ASSET LOADING ---
+    const assets = {
+      grass: new Image(),
+      rock: new Image(),
+      tree: new Image(),
+      bush: new Image(),
+      idle: [],
+      run: []
+    };
 
+    assets.grass.src = 'grass.png';
+    assets.rock.src = 'Rock1.png';
+    assets.tree.src = 'Tree1.png';
+    assets.bush.src = 'Bush1.png';
+
+    // Load Animated Player Frames (1 through 6)
+    for (let i = 1; i <= 6; i++) {
+      let idleImg = new Image();
+      idleImg.src = `Idle${i}.png`;
+      assets.idle.push(idleImg);
+
+      let runImg = new Image();
+      runImg.src = `Run${i}.png`;
+      assets.run.push(runImg);
+    }
+
+    // --- GAME ENGINE STATE ---
     let player = {
-      x: 400,
-      y: 250,
-      size: 26,
-      speed: 4,
+      x: 375,
+      y: 275,
+      width: 50,
+      height: 50,
+      speed: 3,
+      facingLeft: false,
+      isMoving: false,
+      animFrame: 0,
+      animTimer: 0,
       inventory: []
     };
 
-    let quest = {
-      relocatedCount: 0,
-      targetGoal: 5,
-      completed: false
-    };
+    let objects = [
+      { type: 'tree', x: 100, y: 100, width: 80, height: 100, solid: true },
+      { type: 'rock', x: 500, y: 150, width: 60, height: 60, solid: true },
+      { type: 'bush', x: 250, y: 350, width: 50, height: 50, solid: false, trackable: { emoji: '🤣', originId: 1 } },
+      { type: 'bush', x: 600, y: 400, width: 50, height: 50, solid: false, trackable: { emoji: '😎', originId: 2 } },
+      { type: 'bush', x: 150, y: 450, width: 50, height: 50, solid: false, trackable: null }
+    ];
 
     let keys = {};
-    let geocaches = [];
     let modalOpen = false;
-    let nearbyCache = null;
+    let nearbyObject = null;
 
-    // --- WORLD GENERATION ---
-    function initWorld() {
-      geocaches = [];
-      
-      // Spawn 10 Caches across the map
-      for (let i = 0; i < 10; i++) {
-        const hasTrackable = i < 6; // First 6 start with trackables inside
-        geocaches.push({
-          id: i,
-          x: Math.floor(Math.random() * 18 + 1) * TILE_SIZE,
-          y: Math.floor(Math.random() * 10 + 1) * TILE_SIZE,
-          size: 30,
-          trackable: hasTrackable ? {
-            id: 't_' + i,
-            emoji: EMOJIS[i % EMOJIS.length],
-            originCacheId: i
-          } : null
-        });
-      }
-    }
-
-    // --- INPUT HANDLING ---
+    // --- INPUT HANDLERS ---
     window.addEventListener('keydown', (e) => {
       keys[e.key.toLowerCase()] = true;
       if ((e.key === 'e' || e.key === 'E' || e.code === 'Space') && !modalOpen) {
-        interactWithCache();
+        interactWithObject();
       }
     });
 
@@ -267,7 +214,7 @@
       keys[e.key.toLowerCase()] = false;
     });
 
-    // --- MOVEMENT & LOGIC ---
+    // --- MOVEMENT & COLLISION ---
     function update() {
       if (modalOpen) return;
 
@@ -276,27 +223,60 @@
 
       if (keys['w'] || keys['arrowup']) dy -= player.speed;
       if (keys['s'] || keys['arrowdown']) dy += player.speed;
-      if (keys['a'] || keys['arrowleft']) dx -= player.speed;
-      if (keys['d'] || keys['arrowright']) dx += player.speed;
+      if (keys['a'] || keys['arrowleft']) { dx -= player.speed; player.facingLeft = true; }
+      if (keys['d'] || keys['arrowright']) { dx += player.speed; player.facingLeft = false; }
 
-      // Keep within canvas bounds
-      player.x = Math.max(20, Math.min(canvas.width - 20, player.x + dx));
-      player.y = Math.max(20, Math.min(canvas.height - 20, player.y + dy));
+      player.isMoving = (dx !== 0 || dy !== 0);
 
-      // Check proximity to caches
-      nearbyCache = null;
-      for (let cache of geocaches) {
-        const dist = Math.hypot(player.x - (cache.x + 15), player.y - (cache.y + 15));
-        if (dist < 35) {
-          nearbyCache = cache;
-          break;
+      // Handle Animation Frames
+      player.animTimer++;
+      if (player.animTimer >= 8) {
+        player.animFrame = (player.animFrame + 1) % 6;
+        player.animTimer = 0;
+      }
+
+      // Simple AABB Collision for Solid Objects
+      let newX = player.x + dx;
+      let newY = player.y + dy;
+
+      let collidedX = false;
+      let collidedY = false;
+
+      for (let obj of objects) {
+        if (!obj.solid) continue;
+
+        if (checkCollision({ ...player, x: newX }, obj)) collidedX = true;
+        if (checkCollision({ ...player, y: newY }, obj)) collidedY = true;
+      }
+
+      if (!collidedX) player.x = Math.max(0, Math.min(canvas.width - player.width, newX));
+      if (!collidedY) player.y = Math.max(0, Math.min(canvas.height - player.height, newY));
+
+      // Check Nearby Interactive Objects (Bushes/Caches)
+      nearbyObject = null;
+      for (let obj of objects) {
+        if (obj.type === 'bush') {
+          let dist = Math.hypot((player.x + player.width / 2) - (obj.x + obj.width / 2), (player.y + player.height / 2) - (obj.y + obj.height / 2));
+          if (dist < 50) {
+            nearbyObject = obj;
+            break;
+          }
         }
       }
     }
 
-    // --- INTERACTION LOGIC ---
-    function interactWithCache() {
-      if (!nearbyCache) return;
+    function checkCollision(rect1, rect2) {
+      return (
+        rect1.x < rect2.x + rect2.width &&
+        rect1.x + rect1.width > rect2.x &&
+        rect1.y < rect2.y + rect2.height &&
+        rect1.y + rect1.height > rect2.y
+      );
+    }
+
+    // --- INTERACTION & POPUP ---
+    function interactWithObject() {
+      if (!nearbyObject) return;
 
       const overlay = document.getElementById('trackable-overlay');
       const modalTitle = document.getElementById('modal-title');
@@ -305,49 +285,35 @@
       const btnPrimary = document.getElementById('btn-primary');
       const btnSecondary = document.getElementById('btn-secondary');
 
-      // CASE 1: Cache contains a Trackable -> Take It Immediately
-      if (nearbyCache.trackable) {
-        const trackable = nearbyCache.trackable;
+      // TAKE TRACKABLE
+      if (nearbyObject.trackable) {
+        const item = nearbyObject.trackable;
         modalTitle.textContent = "Trackable Found!";
-        modalEmoji.textContent = trackable.emoji;
-        modalText.textContent = `You found a Trackable (${trackable.emoji}) inside this geocache!`;
-        
+        modalEmoji.textContent = item.emoji;
+        modalText.textContent = `You found a Trackable (${item.emoji})! Take it with you?`;
+
         btnPrimary.className = "trackable-btn btn-take";
         btnPrimary.textContent = "Take Trackable";
         btnPrimary.onclick = () => {
-          player.inventory.push(trackable);
-          nearbyCache.trackable = null;
-          updateHUD();
+          player.inventory.push(item);
+          nearbyObject.trackable = null;
           closeModal();
         };
 
         btnSecondary.onclick = closeModal;
         openModal();
       } 
-      // CASE 2: Cache is empty AND player has an item -> Deposit It
+      // DEPOSIT TRACKABLE
       else if (player.inventory.length > 0) {
-        const trackable = player.inventory[0];
+        const item = player.inventory[0];
         modalTitle.textContent = "Deposit Trackable";
-        modalEmoji.textContent = trackable.emoji;
-        modalText.textContent = `Do you want to deposit ${trackable.emoji} into this empty geocache?`;
+        modalEmoji.textContent = item.emoji;
+        modalText.textContent = `Deposit ${item.emoji} into this bush?`;
 
         btnPrimary.className = "trackable-btn btn-deposit";
         btnPrimary.textContent = "Deposit Trackable";
         btnPrimary.onclick = () => {
-          const item = player.inventory.shift();
-          
-          // Check Quest Progress (Relocated to a NEW cache)
-          if (item.originCacheId !== nearbyCache.id) {
-            quest.relocatedCount++;
-            if (quest.relocatedCount >= quest.targetGoal) {
-              quest.completed = true;
-            }
-          }
-          
-          item.originCacheId = nearbyCache.id;
-          nearbyCache.trackable = item;
-
-          updateHUD();
+          nearbyObject.trackable = player.inventory.shift();
           closeModal();
         };
 
@@ -366,90 +332,81 @@
       document.getElementById('trackable-overlay').classList.remove('active');
     }
 
-    function updateHUD() {
-      document.getElementById('inv-count').textContent = player.inventory.length;
-      document.getElementById('quest-count').textContent = `${quest.relocatedCount}`;
-    }
-
-    // --- RENDER LOOP ---
+    // --- RENDER WORLD & ANIMATIONS ---
     function draw() {
-      // Clear screen
-      ctx.fillStyle = '#15803d';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      // Draw Grid Lines
-      ctx.strokeStyle = '#166534';
-      ctx.lineWidth = 1;
-      for (let x = 0; x < canvas.width; x += TILE_SIZE) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, canvas.height);
-        ctx.stroke();
-      }
-      for (let y = 0; y < canvas.height; y += TILE_SIZE) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(canvas.width, y);
-        ctx.stroke();
+      // 1. Draw Tiled Grass Background
+      if (assets.grass.complete && assets.grass.width > 0) {
+        let pattern = ctx.createPattern(assets.grass, 'repeat');
+        ctx.fillStyle = pattern;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      } else {
+        ctx.fillStyle = '#2e7d32';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
       }
 
-      // Draw Geocaches
-      geocaches.forEach(cache => {
-        ctx.fillStyle = cache.trackable ? '#d97706' : '#475569';
-        ctx.fillRect(cache.x, cache.y, cache.size, cache.size);
-        ctx.strokeStyle = '#0f172a';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(cache.x, cache.y, cache.size, cache.size);
+      // 2. Draw Objects (Trees, Rocks, Bushes)
+      objects.forEach(obj => {
+        let img = null;
+        if (obj.type === 'tree') img = assets.tree;
+        if (obj.type === 'rock') img = assets.rock;
+        if (obj.type === 'bush') img = assets.bush;
 
-        // Draw trackable indicator emoji
-        if (cache.trackable) {
-          ctx.font = '16px serif';
+        if (img && img.complete && img.width > 0) {
+          ctx.drawImage(img, obj.x, obj.y, obj.width, obj.height);
+        } else {
+          ctx.fillStyle = obj.solid ? '#555' : '#1b5e20';
+          ctx.fillRect(obj.x, obj.y, obj.width, obj.height);
+        }
+
+        // Draw trackable indicator over bush if present
+        if (obj.trackable) {
+          ctx.font = '20px serif';
           ctx.textAlign = 'center';
-          ctx.fillText(cache.trackable.emoji, cache.x + 15, cache.y + 22);
+          ctx.fillText(obj.trackable.emoji, obj.x + obj.width / 2, obj.y - 5);
         }
       });
 
-      // Draw Interaction Prompt
-      if (nearbyCache && !modalOpen) {
+      // 3. Draw Interaction Prompt
+      if (nearbyObject && !modalOpen) {
         ctx.fillStyle = '#ffffff';
         ctx.font = 'bold 12px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText("Press [E] or [SPACE]", nearbyCache.x + 15, nearbyCache.y - 10);
+        ctx.fillText("Press [E] or [SPACE]", nearbyObject.x + nearbyObject.width / 2, nearbyObject.y - 25);
       }
 
-      // Draw Player
-      ctx.fillStyle = '#3b82f6';
-      ctx.beginPath();
-      ctx.arc(player.x, player.y, player.size / 2, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 3;
-      ctx.stroke();
+      // 4. Draw Animated Player (Flipped if moving left)
+      let currentFrameSet = player.isMoving ? assets.run : assets.idle;
+      let playerImg = currentFrameSet[player.animFrame];
 
-      // Draw Quest Completed Overlay
-      if (quest.completed) {
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
-        ctx.fillRect(150, 150, 500, 200);
-        ctx.fillStyle = '#f59e0b';
-        ctx.font = 'bold 28px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText("🏆 QUEST COMPLETED! 🏆", 400, 220);
-        ctx.fillStyle = '#ffffff';
-        ctx.font = '16px sans-serif';
-        ctx.fillText("You relocated 5 trackables to new caches!", 400, 270);
+      ctx.save();
+      if (player.facingLeft) {
+        ctx.translate(player.x + player.width, player.y);
+        ctx.scale(-1, 1);
+        if (playerImg && playerImg.complete && playerImg.width > 0) {
+          ctx.drawImage(playerImg, 0, 0, player.width, player.height);
+        } else {
+          ctx.fillStyle = '#ffb703';
+          ctx.fillRect(0, 0, player.width, player.height);
+        }
+      } else {
+        ctx.translate(player.x, player.y);
+        if (playerImg && playerImg.complete && playerImg.width > 0) {
+          ctx.drawImage(playerImg, 0, 0, player.width, player.height);
+        } else {
+          ctx.fillStyle = '#ffb703';
+          ctx.fillRect(0, 0, player.width, player.height);
+        }
       }
+      ctx.restore();
     }
 
-    // --- MAIN GAME LOOP ---
+    // --- GAME LOOP ---
     function gameLoop() {
       update();
       draw();
       requestAnimationFrame(gameLoop);
     }
 
-    // Startup
-    initWorld();
-    updateHUD();
     gameLoop();
   </script>
 </body>
