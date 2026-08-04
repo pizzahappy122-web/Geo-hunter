@@ -108,11 +108,11 @@
       cursor: pointer;
     }
 
-    .btn-take {
-      background: #10b981;
-      color: #000;
+    .btn-claim {
+      background: #2ec4b6;
+      color: #011627;
     }
-    .btn-take:hover { background: #34d399; }
+    .btn-claim:hover { background: #20a396; }
 
     .btn-deposit {
       background: #3b82f6;
@@ -137,9 +137,9 @@
       <div class="trackable-modal">
         <h2 id="modal-title" class="trackable-title">Trackable Found!</h2>
         <div id="modal-emoji" class="trackable-icon">🤣</div>
-        <p id="modal-text" class="trackable-desc">You found a trackable!</p>
+        <p id="modal-text" class="trackable-desc">You discovered a trackable item!</p>
         <div class="trackable-btn-group">
-          <button id="btn-primary" class="trackable-btn btn-take">Take Trackable</button>
+          <button id="btn-primary" class="trackable-btn btn-claim">Claim Trackable</button>
           <button id="btn-secondary" class="trackable-btn btn-close">Leave</button>
         </div>
       </div>
@@ -285,15 +285,15 @@
       const btnPrimary = document.getElementById('btn-primary');
       const btnSecondary = document.getElementById('btn-secondary');
 
-      // TAKE TRACKABLE
+      // CLAIM TRACKABLE
       if (nearbyObject.trackable) {
         const item = nearbyObject.trackable;
         modalTitle.textContent = "Trackable Found!";
         modalEmoji.textContent = item.emoji;
-        modalText.textContent = `You found a Trackable (${item.emoji})! Take it with you?`;
+        modalText.textContent = `You discovered ${item.emoji} inside this bush! Claim it into your inventory?`;
 
-        btnPrimary.className = "trackable-btn btn-take";
-        btnPrimary.textContent = "Take Trackable";
+        btnPrimary.className = "trackable-btn btn-claim";
+        btnPrimary.textContent = "Claim Trackable";
         btnPrimary.onclick = () => {
           player.inventory.push(item);
           nearbyObject.trackable = null;
