@@ -494,6 +494,11 @@
                 <div class="quest-progress">• Move 5 Trackables to new Caches (<span id="q3-trackables">0</span> / 5)</div>
                 <div>Code 3: <span id="q3-code" class="code-box code-locked">🔒 LOCKED</span></div>
             </div>
+            <div class="quest-card">
+                <div class="quest-title">Quest 4: Rescue Turtles</div>
+                <div class="quest-progress">• Move 5 Turtles to water (<span id="q4-turtles">0</span> / 5)</div>
+                <div>Reward: <span style="color: #f39c12; font-weight: bold;">Overheal Potion 🏺</span></div>
+            </div>
             <button class="modal-btn warning" onclick="closeModal('quest-modal')">Close [Q / E]</button>
         </div>
 
@@ -586,7 +591,6 @@
             targetCtx.translate(x, y);
             targetCtx.scale(scale, scale);
 
-            // Wooden Bow Stave
             targetCtx.strokeStyle = '#8B4513';
             targetCtx.lineWidth = 3;
             targetCtx.lineCap = 'round';
@@ -594,14 +598,12 @@
             targetCtx.arc(-5, 0, 16, -Math.PI / 2.2, Math.PI / 2.2);
             targetCtx.stroke();
 
-            // Bow Limb Tips
             targetCtx.fillStyle = '#D2B48C';
             targetCtx.beginPath();
             targetCtx.arc(0, -14, 2, 0, Math.PI * 2);
             targetCtx.arc(0, 14, 2, 0, Math.PI * 2);
             targetCtx.fill();
 
-            // Bow String
             targetCtx.strokeStyle = '#ECEFF1';
             targetCtx.lineWidth = 1.2;
             targetCtx.beginPath();
@@ -611,7 +613,6 @@
             targetCtx.lineTo(0, 14);
             targetCtx.stroke();
 
-            // Loaded Arrow (if drawn)
             if (isDrawn) {
                 drawCustomArrow(targetCtx, pullBack + 12, 0, 0.8, 0);
             }
@@ -625,7 +626,6 @@
             targetCtx.rotate(angle);
             targetCtx.scale(scale, scale);
 
-            // Shaft
             targetCtx.strokeStyle = '#5D4037';
             targetCtx.lineWidth = 2;
             targetCtx.beginPath();
@@ -633,7 +633,6 @@
             targetCtx.lineTo(12, 0);
             targetCtx.stroke();
 
-            // Arrowhead (Metal)
             targetCtx.fillStyle = '#CFD8DC';
             targetCtx.strokeStyle = '#37474F';
             targetCtx.lineWidth = 1;
@@ -646,7 +645,6 @@
             targetCtx.fill();
             targetCtx.stroke();
 
-            // Fletching (Feathers)
             targetCtx.fillStyle = '#E74C3C';
             targetCtx.beginPath();
             targetCtx.moveTo(-12, 0);
@@ -708,7 +706,6 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
-        // --- SPRITE IMAGE LOADING ---
         const GAME_SPRITES = {
             grassPattern: 'grass.png',
             rockSheet: 'Rock1.png',      
@@ -757,7 +754,6 @@
             ctx.restore();
         }
 
-        // --- ANIMATED PLAYER SPRITE LOADING ---
         const playerSprites = { idle: [], run: [] };
 
         for (let i = 1; i <= 6; i++) {
@@ -801,7 +797,8 @@
         const questState = {
             q1Completed: false, cachesFound: 0, cachesTarget: 20, code1: "MASTER-9921",
             q2Completed: false, monstersDefeated: 0, monstersTarget: 10, code2: "SLAYER-7740",
-            q3Completed: false, trackablesRelocated: 0, trackablesTarget: 5, code3: "LOVER-3310"
+            q3Completed: false, trackablesRelocated: 0, trackablesTarget: 5, code3: "LOVER-3310",
+            q4Completed: false, turtlesRescued: 0, turtlesTarget: 5
         };
 
         const ATTACK_DURATION = 0.25;
@@ -812,7 +809,7 @@
             radius: 12, speed: 220,
             facingLeft: false, animTimer: 0, animFrame: 0,
             isMoving: false, isAttacking: false, attackTimer: 0,
-            health: 3, maxHealth: 3, yellowHearts: 0, invulnerableTimer: 0
+            health: 3, maxHealth: 3, hasHalfHeart: false, yellowHearts: 0, invulnerableTimer: 0
         };
 
         let mousePos = { x: canvas.width / 2, y: canvas.height / 2 };
@@ -829,7 +826,6 @@
         ];
         let selectedSlotIndex = 0;
 
-        // --- BOW & ARROW MECHANICS (PC ONLY) ---
         let isChargingBow = false;
         let bowChargeTimer = 0;
         const BOW_MAX_CHARGE_TIME = 1.0; 
@@ -841,7 +837,7 @@
                 this.y = y;
                 this.radius = 4;
                 this.speed = 500;
-                this.damage = 0.5; // 0.5 Heart Damage
+                this.damage = 0.5; // Half heart damage
                 this.alive = true;
 
                 const angle = Math.atan2(targetY - y, targetX - x);
@@ -888,7 +884,20 @@
 
         function updateHeartsUI() {
             let heartsStr = "";
-            for (let i = 0; i < player.maxHealth; i++) heartsStr += (i < player.health) ? "❤️" : "🖤";
+            let fullHearts = player.health;
+            let hasHalf = player.hasHalfHeart;
+
+            for (let i = 0; i < player.maxHealth; i++) {
+                if (fullHearts > 0) {
+                    heartsStr += "❤️";
+                    fullHearts--;
+                } else if (hasHalf) {
+                    heartsStr += "💔";
+                    hasHalf = false;
+                } else {
+                    heartsStr += "🖤";
+                }
+            }
             for (let i = 0; i < player.yellowHearts; i++) heartsStr += "💛";
             heartsContainer.textContent = heartsStr;
         }
@@ -1077,9 +1086,11 @@
                 this.minX = minX; this.maxX = maxX;
                 this.speed = 25; this.direction = 1;
                 this.radius = 16; this.emoji = '🐢';
+                this.isRescued = false;
             }
 
             update(deltaTime) {
+                if (this.isRescued) return;
                 this.x += this.speed * this.direction * deltaTime;
                 if (this.x >= this.maxX) { this.x = this.maxX; this.direction = -1; }
                 else if (this.x <= this.minX) { this.x = this.minX; this.direction = 1; }
@@ -1088,7 +1099,7 @@
             draw() {
                 ctx.save();
                 ctx.translate(this.x, this.y);
-                if (this.direction === 1) ctx.scale(-1, 1);
+                if (this.direction === 1 && !this.isRescued) ctx.scale(-1, 1);
                 ctx.font = '26px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
                 ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                 ctx.fillText(this.emoji, 0, 0);
@@ -1148,7 +1159,7 @@
             update(deltaTime) {
                 if (!this.alive || (player.health <= 0 && player.yellowHearts <= 0)) return;
                 const dist = Math.hypot(player.x - this.x, player.y - this.y);
-                if (dist < this.detectionRange) {
+                if (this.isChasing || dist < this.detectionRange) {
                     this.isChasing = true;
                     const angle = Math.atan2(player.y - this.y, player.x - this.x);
                     this.facingLeft = (player.x < this.x);
@@ -1174,13 +1185,19 @@
 
                     if (!touchingSword && player.invulnerableTimer <= 0) {
                         if (player.yellowHearts > 0) player.yellowHearts--;
-                        else player.health--;
+                        else {
+                            if (player.hasHalfHeart) {
+                                player.hasHalfHeart = false;
+                            } else {
+                                player.health--;
+                            }
+                        }
 
                         player.invulnerableTimer = 1.0;
                         playSound('damage');
                         updateHeartsUI();
 
-                        if (player.health <= 0 && player.yellowHearts <= 0) {
+                        if (player.health <= 0 && player.yellowHearts <= 0 && !player.hasHalfHeart) {
                             gameOverModal.style.display = 'block';
                         }
                     }
@@ -1240,7 +1257,7 @@
                 if (!this.alive || (player.health <= 0 && player.yellowHearts <= 0)) return;
                 const dist = Math.hypot(player.x - this.x, player.y - this.y);
 
-                if (this.isAggroed) {
+                if (this.isAggroed || this.isChasing) {
                     this.isChasing = true;
                     const angle = Math.atan2(player.y - this.y, player.x - this.x);
                     this.facingLeft = (player.x < this.x);
@@ -1249,13 +1266,19 @@
 
                     if (dist < this.radius + player.radius && player.invulnerableTimer <= 0) {
                         if (player.yellowHearts > 0) player.yellowHearts--;
-                        else player.health--;
+                        else {
+                            if (player.hasHalfHeart) {
+                                player.hasHalfHeart = false;
+                            } else {
+                                player.health--;
+                            }
+                        }
 
                         player.invulnerableTimer = 1.0;
                         playSound('damage');
                         updateHeartsUI();
 
-                        if (player.health <= 0 && player.yellowHearts <= 0) {
+                        if (player.health <= 0 && player.yellowHearts <= 0 && !player.hasHalfHeart) {
                             gameOverModal.style.display = 'block';
                         }
                     }
@@ -1266,7 +1289,7 @@
                 if (!this.alive) return;
                 ctx.save();
                 
-                if (this.isAggroed) {
+                if (this.isAggroed || this.isChasing) {
                     const heartsCount = Math.ceil((this.hp / this.maxHp) * 3);
                     let heartsStr = "";
                     for (let i = 0; i < 3; i++) {
@@ -1352,6 +1375,7 @@
 
         function respawnPlayer() {
             player.health = player.maxHealth;
+            player.hasHalfHeart = false;
             player.yellowHearts = 0;
             player.invulnerableTimer = 0;
             player.gridX = 0; player.gridY = 0;
@@ -1361,9 +1385,11 @@
             questState.cachesFound = 0;
             questState.monstersDefeated = 0;
             questState.trackablesRelocated = 0;
+            questState.turtlesRescued = 0;
             questState.q1Completed = false;
             questState.q2Completed = false;
             questState.q3Completed = false;
+            questState.q4Completed = false;
 
             inventory = [
                 { name: "Wooden Sword", type: "weapon", icon: "🗡️" },
@@ -1383,7 +1409,7 @@
         }
 
         function triggerActionOrAttack() {
-            if (player.health <= 0 && player.yellowHearts <= 0) return;
+            if (player.health <= 0 && player.yellowHearts <= 0 && !player.hasHalfHeart) return;
             const selectedItem = inventory[selectedSlotIndex];
 
             if (selectedItem && (selectedItem.type === 'hp_potion' || selectedItem.type === 'overheal_potion')) {
@@ -1429,8 +1455,12 @@
             if (!item) return;
 
             if (item.type === 'hp_potion') {
-                if (player.health < player.maxHealth) {
-                    player.health++;
+                if (player.health < player.maxHealth || player.hasHalfHeart) {
+                    if (player.hasHalfHeart) {
+                        player.hasHalfHeart = false;
+                    } else {
+                        player.health++;
+                    }
                     updateHeartsUI();
                     playSound('heal');
                     inventory[selectedSlotIndex] = null;
@@ -1456,14 +1486,30 @@
                 const placeX = player.x;
                 const placeY = player.y;
 
-                chunk.turtles.push(new DecorativeTurtle(placeX, placeY, Math.max(50, placeX - 80), Math.min(canvas.width - 50, placeX + 80)));
+                let isOnWater = false;
+                for (const p of chunk.puddles) {
+                    const distToWater = Math.hypot(placeX - p.x, placeY - p.y);
+                    if (distToWater < Math.max(p.width, p.height) / 2) {
+                        isOnWater = true;
+                        break;
+                    }
+                }
+
+                const placedTurtle = new DecorativeTurtle(placeX, placeY, placeX, placeX);
+                if (isOnWater) {
+                    placedTurtle.isRescued = true;
+                    questState.turtlesRescued++;
+                    updateQuestProgress();
+                }
+
+                chunk.turtles.push(placedTurtle);
                 inventory[selectedSlotIndex] = null;
                 playSound('heal');
                 updateHotbarUI();
                 return;
             }
 
-            if (activeNearbyTurtle) {
+            if (activeNearbyTurtle && !activeNearbyTurtle.isRescued) {
                 const emptyIndex = inventory.findIndex(slot => slot === null);
                 if (emptyIndex !== -1) {
                     const chunk = getOrCreateChunk(player.gridX, player.gridY);
@@ -1586,6 +1632,7 @@
             document.getElementById('q1-count').textContent = questState.cachesFound;
             document.getElementById('q2-monsters').textContent = questState.monstersDefeated;
             document.getElementById('q3-trackables').textContent = questState.trackablesRelocated;
+            document.getElementById('q4-turtles').textContent = questState.turtlesRescued;
 
             const q1Code = document.getElementById('q1-code');
             if (questState.cachesFound >= questState.cachesTarget) {
@@ -1624,6 +1671,16 @@
             } else {
                 q3Code.textContent = "🔒 LOCKED";
                 q3Code.classList.add('code-locked');
+            }
+
+            if (questState.turtlesRescued >= questState.turtlesTarget && !questState.q4Completed) {
+                questState.q4Completed = true;
+                triggerQuestBanner("Rescue Turtles!", "REWARD: OVERHEAL POTION");
+                const emptyIndex = inventory.findIndex(s => s === null);
+                if (emptyIndex !== -1) {
+                    inventory[emptyIndex] = { name: "Overheal Potion", type: "overheal_potion", icon: "🏺" };
+                    updateHotbarUI();
+                }
             }
         }
 
@@ -1821,7 +1878,7 @@
         }
 
         function updatePlayer(deltaTime) {
-            if (player.health <= 0 && player.yellowHearts <= 0) return;
+            if (player.health <= 0 && player.yellowHearts <= 0 && !player.hasHalfHeart) return;
 
             if (player.invulnerableTimer > 0) {
                 player.invulnerableTimer -= deltaTime;
@@ -1906,7 +1963,7 @@
         }
 
         function drawPlayerSprite() {
-            if (player.health <= 0 && player.yellowHearts <= 0) return;
+            if (player.health <= 0 && player.yellowHearts <= 0 && !player.hasHalfHeart) return;
 
             if (player.invulnerableTimer > 0 && Math.floor(performance.now() / 100) % 2 === 0) {
                 return;
@@ -1941,7 +1998,6 @@
 
             ctx.restore();
 
-            // --- CUSTOM CANVAS BOW DRAWING ---
             const currentItem = inventory[selectedSlotIndex];
             if (currentItem && currentItem.type === 'bow') {
                 const aimAngle = Math.atan2(mousePos.y - player.y, mousePos.x - player.x);
@@ -1956,7 +2012,6 @@
                 ctx.restore();
             }
 
-            // Draw Charge Bar for PC Bow & Arrow
             if (isChargingBow && !isMobile) {
                 const barWidth = 40;
                 const barHeight = 6;
@@ -2052,7 +2107,6 @@
                 }
             }
 
-            // Arrow logic
             for (let i = arrows.length - 1; i >= 0; i--) {
                 const arrow = arrows[i];
                 arrow.update(deltaTime);
@@ -2067,6 +2121,7 @@
                     if (!m.alive) return;
                     if (Math.hypot(arrow.x - m.x, arrow.y - m.y) < m.radius + arrow.radius) {
                         m.takeDamage(arrow.damage);
+                        m.isChasing = true; // Global agro when shot anywhere
                         arrow.alive = false;
                     }
                 });
@@ -2078,7 +2133,7 @@
             let closestTurtleDist = Infinity;
             const rect = canvas.getBoundingClientRect();
 
-            if (player.health > 0 || player.yellowHearts > 0) {
+            if (player.health > 0 || player.yellowHearts > 0 || player.hasHalfHeart) {
                 chunk.bushes.forEach(bush => {
                     const dist = Math.hypot(player.x - bush.x, player.y - bush.y);
                     if (dist < INTERACTION_DISTANCE && dist < closestBushDist) {
@@ -2088,6 +2143,7 @@
                 });
 
                 chunk.turtles.forEach(turtle => {
+                    if (turtle.isRescued) return;
                     const dist = Math.hypot(player.x - turtle.x, player.y - turtle.y);
                     if (dist < INTERACTION_DISTANCE && dist < closestTurtleDist) {
                         closestTurtleDist = dist;
