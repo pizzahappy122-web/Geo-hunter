@@ -118,6 +118,11 @@
         .item-icon {
             font-size: 18px;
             margin-top: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
         }
 
         .action-btn {
@@ -406,6 +411,11 @@
             background: rgba(0,0,0,0.3);
             border-radius: 8px;
         }
+
+        .bow-canvas-icon {
+            width: 32px;
+            height: 32px;
+        }
     </style>
 </head>
 <body>
@@ -568,6 +578,101 @@
                 gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
                 osc.start(now); osc.stop(now + 0.12);
             }
+        }
+
+        // --- CUSTOM DRAWING PROCEDURES FOR BOW AND ARROW ---
+        function drawCustomBow(targetCtx, x, y, scale = 1, isDrawn = false, drawAmount = 0) {
+            targetCtx.save();
+            targetCtx.translate(x, y);
+            targetCtx.scale(scale, scale);
+
+            // Wooden Bow Stave
+            targetCtx.strokeStyle = '#8B4513';
+            targetCtx.lineWidth = 3;
+            targetCtx.lineCap = 'round';
+            targetCtx.beginPath();
+            targetCtx.arc(-5, 0, 16, -Math.PI / 2.2, Math.PI / 2.2);
+            targetCtx.stroke();
+
+            // Bow Limb Tips
+            targetCtx.fillStyle = '#D2B48C';
+            targetCtx.beginPath();
+            targetCtx.arc(0, -14, 2, 0, Math.PI * 2);
+            targetCtx.arc(0, 14, 2, 0, Math.PI * 2);
+            targetCtx.fill();
+
+            // Bow String
+            targetCtx.strokeStyle = '#ECEFF1';
+            targetCtx.lineWidth = 1.2;
+            targetCtx.beginPath();
+            targetCtx.moveTo(0, -14);
+            const pullBack = isDrawn ? -6 * drawAmount : 0;
+            targetCtx.lineTo(pullBack, 0);
+            targetCtx.lineTo(0, 14);
+            targetCtx.stroke();
+
+            // Loaded Arrow (if drawn)
+            if (isDrawn) {
+                drawCustomArrow(targetCtx, pullBack + 12, 0, 0.8, 0);
+            }
+
+            targetCtx.restore();
+        }
+
+        function drawCustomArrow(targetCtx, x, y, scale = 1, angle = 0) {
+            targetCtx.save();
+            targetCtx.translate(x, y);
+            targetCtx.rotate(angle);
+            targetCtx.scale(scale, scale);
+
+            // Shaft
+            targetCtx.strokeStyle = '#5D4037';
+            targetCtx.lineWidth = 2;
+            targetCtx.beginPath();
+            targetCtx.moveTo(-12, 0);
+            targetCtx.lineTo(12, 0);
+            targetCtx.stroke();
+
+            // Arrowhead (Metal)
+            targetCtx.fillStyle = '#CFD8DC';
+            targetCtx.strokeStyle = '#37474F';
+            targetCtx.lineWidth = 1;
+            targetCtx.beginPath();
+            targetCtx.moveTo(14, 0);
+            targetCtx.lineTo(7, -4);
+            targetCtx.lineTo(9, 0);
+            targetCtx.lineTo(7, 4);
+            targetCtx.closePath();
+            targetCtx.fill();
+            targetCtx.stroke();
+
+            // Fletching (Feathers)
+            targetCtx.fillStyle = '#E74C3C';
+            targetCtx.beginPath();
+            targetCtx.moveTo(-12, 0);
+            targetCtx.lineTo(-16, -4);
+            targetCtx.lineTo(-10, -1);
+            targetCtx.closePath();
+            targetCtx.fill();
+
+            targetCtx.beginPath();
+            targetCtx.moveTo(-12, 0);
+            targetCtx.lineTo(-16, 4);
+            targetCtx.lineTo(-10, 1);
+            targetCtx.closePath();
+            targetCtx.fill();
+
+            targetCtx.restore();
+        }
+
+        function createBowCanvasIcon() {
+            const iconCanvas = document.createElement('canvas');
+            iconCanvas.width = 32;
+            iconCanvas.height = 32;
+            iconCanvas.className = 'bow-canvas-icon';
+            const iconCtx = iconCanvas.getContext('2d');
+            drawCustomBow(iconCtx, 16, 16, 0.95);
+            return iconCanvas;
         }
 
         function drawAmmoBox(targetCtx, x, y, width, height) {
@@ -755,27 +860,7 @@
             }
 
             draw() {
-                ctx.save();
-                ctx.translate(this.x, this.y);
-                ctx.rotate(this.angle);
-                
-                // Draw little rotated projectile arrow
-                ctx.strokeStyle = '#f1c40f';
-                ctx.lineWidth = 3;
-                ctx.beginPath();
-                ctx.moveTo(-10, 0);
-                ctx.lineTo(10, 0);
-                ctx.stroke();
-
-                ctx.fillStyle = '#e74c3c';
-                ctx.beginPath();
-                ctx.moveTo(10, 0);
-                ctx.lineTo(4, -4);
-                ctx.lineTo(4, 4);
-                ctx.closePath();
-                ctx.fill();
-
-                ctx.restore();
+                drawCustomArrow(ctx, this.x, this.y, 1.0, this.angle);
             }
         }
 
@@ -816,7 +901,15 @@
 
                 const item = inventory[idx];
                 const iconSpan = slot.querySelector('.item-icon');
-                iconSpan.textContent = item ? item.icon : "";
+                iconSpan.innerHTML = "";
+
+                if (item) {
+                    if (item.type === 'bow') {
+                        iconSpan.appendChild(createBowCanvasIcon());
+                    } else {
+                        iconSpan.textContent = item.icon || "";
+                    }
+                }
             });
 
             const currentItem = inventory[selectedSlotIndex];
@@ -825,7 +918,14 @@
                 if (isMobile) mobileSwordBtn.textContent = '🧪';
             } else {
                 potionPrompt.style.display = 'none';
-                if (isMobile) mobileSwordBtn.textContent = (currentItem && currentItem.type === 'bow') ? '🏹' : '🗡️';
+                if (isMobile) {
+                    mobileSwordBtn.innerHTML = "";
+                    if (currentItem && currentItem.type === 'bow') {
+                        mobileSwordBtn.appendChild(createBowCanvasIcon());
+                    } else {
+                        mobileSwordBtn.textContent = '🗡️';
+                    }
+                }
             }
         }
 
@@ -988,7 +1088,6 @@
             draw() {
                 ctx.save();
                 ctx.translate(this.x, this.y);
-                // Flip direction logic so turtle faces forward
                 if (this.direction === 1) ctx.scale(-1, 1);
                 ctx.font = '26px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
                 ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -1129,7 +1228,7 @@
 
                     const emptySlot = inventory.findIndex(s => s === null);
                     if (emptySlot !== -1 && !inventory.some(i => i && i.type === 'bow')) {
-                        inventory[emptySlot] = { name: "Bow & Arrow", type: "bow", icon: "🏹" };
+                        inventory[emptySlot] = { name: "Bow & Arrow", type: "bow" };
                         updateHotbarUI();
                     }
                 } else {
@@ -1842,20 +1941,17 @@
 
             ctx.restore();
 
-            // --- PIVOTING BOW EMOJI IMPLEMENTATION ---
+            // --- CUSTOM CANVAS BOW DRAWING ---
             const currentItem = inventory[selectedSlotIndex];
             if (currentItem && currentItem.type === 'bow') {
                 const aimAngle = Math.atan2(mousePos.y - player.y, mousePos.x - player.x);
+                const chargeProgress = Math.min(bowChargeTimer / BOW_MAX_CHARGE_TIME, 1.0);
 
                 ctx.save();
                 ctx.translate(player.x, player.y);
                 ctx.rotate(aimAngle);
 
-                // Draw Pivoting Bow Emoji offset from player center
-                ctx.font = '26px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText('🏹', 22, 0);
+                drawCustomBow(ctx, 22, 0, 0.85, isChargingBow, chargeProgress);
 
                 ctx.restore();
             }
