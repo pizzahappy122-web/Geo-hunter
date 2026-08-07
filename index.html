@@ -347,14 +347,14 @@
             margin-bottom: 6px;
         }
         .ribbon-coords {
-            font-size: 14px;
+            font-size: 13px;
             font-family: monospace;
             background: rgba(0,0,0,0.35);
             color: #2ecc71;
             padding: 4px 10px;
             border-radius: 4px;
             display: inline-block;
-            letter-spacing: 1px;
+            letter-spacing: 0.5px;
         }
 
         #game-over-modal { border-color: #e74c3c; }
@@ -379,7 +379,8 @@
             font-weight: bold;
             display: inline-block;
             margin-top: 4px;
-            letter-spacing: 1px;
+            letter-spacing: 0.5px;
+            font-size: 12px;
         }
         .code-locked { color: #7f8c8d; }
 
@@ -456,7 +457,7 @@
             <div class="ribbon-banner">
                 <div class="ribbon-header">🏆 QUEST COMPLETED! 🏆</div>
                 <div id="banner-quest-title" class="ribbon-title">Master Geocacher!</div>
-                <div id="banner-quest-coords" class="ribbon-coords">CACHE-9921</div>
+                <div id="banner-quest-coords" class="ribbon-coords">N41 58.115 W088 20.982</div>
             </div>
         </div>
 
@@ -585,7 +586,6 @@
             }
         }
 
-        // --- CUSTOM DRAWING PROCEDURES FOR BOW AND ARROW ---
         function drawCustomBow(targetCtx, x, y, scale = 1, isDrawn = false, drawAmount = 0) {
             targetCtx.save();
             targetCtx.translate(x, y);
@@ -795,9 +795,9 @@
         const INTERACTION_DISTANCE = 55;
 
         const questState = {
-            q1Completed: false, cachesFound: 0, cachesTarget: 20, code1: "MASTER-9921",
-            q2Completed: false, monstersDefeated: 0, monstersTarget: 10, code2: "SLAYER-7740",
-            q3Completed: false, trackablesRelocated: 0, trackablesTarget: 5, code3: "LOVER-3310",
+            q1Completed: false, cachesFound: 0, cachesTarget: 20, code1: "N41 58.115 W088 20.982",
+            q2Completed: false, monstersDefeated: 0, monstersTarget: 10, code2: "N41 58.205 W088 21.543",
+            q3Completed: false, trackablesRelocated: 0, trackablesTarget: 5, code3: "N41 57.954 W088 21.010",
             q4Completed: false, turtlesRescued: 0, turtlesTarget: 5
         };
 
@@ -837,7 +837,7 @@
                 this.y = y;
                 this.radius = 4;
                 this.speed = 500;
-                this.damage = 0.5; // Half heart damage
+                this.damage = 0.5;
                 this.alive = true;
 
                 const angle = Math.atan2(targetY - y, targetX - x);
@@ -2121,7 +2121,7 @@
                     if (!m.alive) return;
                     if (Math.hypot(arrow.x - m.x, arrow.y - m.y) < m.radius + arrow.radius) {
                         m.takeDamage(arrow.damage);
-                        m.isChasing = true; // Global agro when shot anywhere
+                        m.isChasing = true;
                         arrow.alive = false;
                     }
                 });
